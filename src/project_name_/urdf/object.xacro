@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot name="object" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="$(find project_name_)/urdf/handle.xacro"/>
+
+    <property name="obj_length" value="0.8"/>
+    <property name="obj_width" value="0.35"/>
+    <property name="obj_height" value="0.05"/>
+
+    <xacro:macro name="object" params="parent name *origin">
+
+      <!-- ============================================================= -->
+
+      <joint name="${parent}_${name}object_link_joint" type="fixed">
+          <xacro:insert_block name="origin"/>
+          <parent link="${parent}"/>
+          <child link="${name}object_link"/>
+      </joint>
+
+      <link name="${name}object_link">
+
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <box size="${obj_width} ${obj_length} ${obj_height}" />
+          </geometry>
+          <material name="Brown">
+            <color rgba="0.3569 0.2275 0.1608 1.0"/>
+          </material>
+        </visual>
+
+      </link>
+
+      <xacro:handle parent="${name}object_link" name="${name}left_handle">
+        <origin xyz="-${obj_width/2} ${obj_length*0.2} 0" rpy="0 0 0" />
+      </xacro:handle>
+
+      <xacro:handle parent="${name}object_link" name="${name}right_handle">
+        <origin xyz="-${obj_width/2} -${obj_length*0.2} 0" rpy="0 0 0" />
+      </xacro:handle>
+
+    </xacro:macro>
+
+</robot>

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find project_name_)/urdf/ur5_kol_robot_description.xacro'" /> -->
+    <param name="my_robot_description" command="$(find xacro)/xacro.py '$(find project_name_)/urdf/lwr4p_robot.xacro'" />
+
+    <!-- <node name="my_joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <remap from="robot_description" to="my_robot_description" />
+      <rosparam>
+          rate: 50
+          use_gui: true
+      </rosparam>
+    </node>
+    <node name="my_robot_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+      <remap from="robot_description" to="my_robot_description" />
+    </node> -->
+
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find project_name_)/rviz/scene.rviz" output="screen" required="true"/>
+
+    <node pkg="project_name_" type="project_name_" name="my_project_name_"
+          output="screen" cwd="node" required="true">
+
+        <rosparam>
+
+          robot_description: "my_robot_description"
+
+          mo: 0.01
+          Jo: [0.1, 0.1, 0.1]
+
+          Ts: 0.001
+
+          M: [5, 5, 5, 0.5, 0.5, 0.5]
+          D: [40, 40, 40, 0.8, 0.8, 0.8]
+
+        </rosparam>
+
+    </node>
+
+</launch>

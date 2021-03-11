@@ -1,0 +1,15 @@
+# =====  Move to targets params  ========
+
+target_1: [-0.788; 0.05; 0.109; 0.00243; 0.371; -0.928; 0.0114;  12]
+parent_link_1: "base_link"
+child_link_1: "case1_kol_case_link"
+
+# target_1: [-0.632; -0.126; 0.107; 0.01; -1; -0.0143; 0.00725;  12]
+# parent_link_1: "base_link"
+# child_link_1: "case1_kol_case_link"
+
+# target_2: [-0.788; 0.05; 0.109; 0.00243; 0.371; -0.928; 0.0114;  12]
+# parent_link_2: "base_link"
+# child_link_2: "case2_kol_case_link"
+
+pub_tf: true

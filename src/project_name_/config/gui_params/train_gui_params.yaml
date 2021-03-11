@@ -1,0 +1,15 @@
+# =====  Training params  ========
+
+Dx: 50
+fv_filt: 0.01
+fv_scaling: 1.0
+
+N_kernels: 30
+train_method: "LS" # { "LS" , "LWR" }
+
+slider_min_val: -10
+slider_max_val: 10
+slider_auto_reset: true
+slider_reset_rate: 0.05
+
+enable_logging: true

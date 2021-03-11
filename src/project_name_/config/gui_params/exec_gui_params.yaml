@@ -1,0 +1,19 @@
+# =====  Execution params  ========
+
+log_data: false
+phase_stop: false
+online_adapt: false
+
+Kp: 100
+Dp: 30
+Ko: 20
+Do: 5
+
+target_pose: [-0.717; 0.004; 0.587; 0.170; 0.419; -0.581; -0.677]
+motion_duration: 5 # motion duration
+
+# ============================================
+
+Fext_rev_thres: 5
+x_back: 0.2
+a_f: 0.05

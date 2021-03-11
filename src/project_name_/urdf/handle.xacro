@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<robot name="handle" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <property name="bar_radius" value="0.01"/>
+    <property name="bar_length" value="0.06"/>
+
+    <property name="handle_radius" value="0.016"/>
+    <property name="handle_length" value="0.14"/>
+
+    <xacro:macro name="handle" params="parent name *origin">
+
+        <!-- base joint from parent to base link -->
+        <joint name="${parent}_${name}_base_joint" type="fixed">
+            <xacro:insert_block name="origin"/>
+            <parent link="${parent}"/>
+            <child link="${name}_base_link"/>
+        </joint>
+
+        <!-- base link -->
+        <link name="${name}_base_link"/>
+
+
+        <!-- left bar link -->
+        <joint name="${parent}_${name}_leftBar_joint" type="fixed">
+            <parent link="${name}_base_link"/>
+            <child link="${name}_leftBar"/>
+        </joint>
+
+        <link name="${name}_leftBar">
+            <visual>
+                <origin xyz="-${bar_length/2} -${0.3*handle_length} 0" rpy="0 1.57 0" />
+                <geometry>
+                    <cylinder radius="${bar_radius}" length="${bar_length}" />
+                </geometry>
+                <material name="Grey_">
+                    <color rgba="0.65 0.65 0.65 1.0"/>
+                </material>
+            </visual>
+        </link>
+
+
+        <!-- right bar -->
+        <joint name="${parent}_${name}_rightBar_joint" type="fixed">
+            <parent link="${name}_base_link"/>
+            <child link="${name}_rightBar"/>
+        </joint>
+
+        <link name="${name}_rightBar">
+            <visual>
+                <origin xyz="-${bar_length/2} ${0.3*handle_length} 0" rpy="0 1.57 0" />
+                <geometry>
+                    <cylinder radius="${bar_radius}" length="${bar_length}" />
+                </geometry>
+                <material name="Grey_">
+                    <color rgba="0.65 0.65 0.65 1.0"/>
+                </material>
+            </visual>
+        </link>
+
+        <!-- handle -->
+        <joint name="${parent}_${name}_handle_joint" type="fixed">
+            <parent link="${name}_base_link"/>
+            <child link="${name}_handle"/>
+        </joint>
+
+        <link name="${name}_handle">
+            <visual>
+                <origin xyz="-${bar_length} 0 0" rpy="1.57 0 0" />
+                <geometry>
+                    <cylinder radius="${handle_radius}" length="${handle_length}" />
+                </geometry>
+                <material name="Grey_">
+                    <color rgba="0.65 0.65 0.65 1.0"/>
+                </material>
+            </visual>
+        </link>
+
+    </xacro:macro>
+
+</robot>
