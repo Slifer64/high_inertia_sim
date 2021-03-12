@@ -126,9 +126,6 @@ void Robot::simulationLoop()
 
     F_o = obj_.graspMat(R_be) * arma::join_vert(mo*g_ , arma::vec().zeros(3));
 
-    // F_lh = {0, 0, 0, 0, 0, 0.05};
-    // F_rh = {0, 0, 0, 0, 0, 0};
-
     arma::vec F_lh2 = lh_.graspMat(R_be) * F_lh;
     arma::vec F_rh2 = rh_.graspMat(R_be) * F_rh;
 
@@ -140,7 +137,6 @@ void Robot::simulationLoop()
     // std::cerr << (obj_.p).t() << "\n";
     //
     // std::cerr << "G = \n" << obj_.graspMat(R_be) << "\n";
-
     // if (count == 30) exit(-1);
 
 

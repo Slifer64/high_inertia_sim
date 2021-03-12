@@ -67,7 +67,7 @@ public:
     robot->startSim();
 
     arma::vec u = arma::vec().zeros(6,1);
-    arma::vec p_oe = robot->get_pos_ee_obj();
+    arma::vec p_eo = robot->get_pos_ee_obj();
     double mo = robot->getObjectMass();
     arma::vec Fo_minus = {0, 0, mo*9.81, 0, 0, 0};
 
@@ -77,7 +77,7 @@ public:
       {
         arma::mat R = robot->getTaskRotm();
         u.subvec(0,2) = Fo_minus.subvec(0,2);
-        u.subvec(3,5) = arma::cross(R*p_oe, Fo_minus.subvec(0,2)) + Fo_minus.subvec(3,5);
+        u.subvec(3,5) = arma::cross(R*p_eo, Fo_minus.subvec(0,2)) + Fo_minus.subvec(3,5);
         robot->setInputWrench(u);
       }
 

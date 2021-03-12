@@ -5,8 +5,8 @@
 
 WrenchCtrlGui::WrenchCtrlGui(QWidget *parent): QFrame(parent)
 {
-  double fmax = 20;
-  double tmax = 2;
+  double fmax = 5;
+  double tmax = 1;
 
   fx_slider = new TrainSlider(fmax, "fx");
   fy_slider = new TrainSlider(fmax, "fy");
