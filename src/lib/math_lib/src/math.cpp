@@ -13,7 +13,7 @@ namespace math_
 
 Eigen::Matrix3d vec2ssMat(const Eigen::Vector3d &v)
 {
-  Eigen::Matrix3d ssMat;
+  Eigen::Matrix3d ssMat = Eigen::Matrix3d::Zero();
   ssMat(0, 1) = -v(2);
   ssMat(0, 2) =  v(1);
   ssMat(1, 0) =  v(2);
@@ -26,7 +26,7 @@ Eigen::Matrix3d vec2ssMat(const Eigen::Vector3d &v)
 
 arma::mat vec2ssMat(const arma::vec &v)
 {
-  arma::mat ssMat(3,3);
+  arma::mat ssMat = arma::mat().zeros(3,3);
   ssMat(0, 1) = -v(2);
   ssMat(0, 2) =  v(1);
   ssMat(1, 0) =  v(2);

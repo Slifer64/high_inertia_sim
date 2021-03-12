@@ -25,13 +25,19 @@
 
           robot_description: "my_robot_description"
 
-          mo: 0.01
-          Jo: [0.1, 0.1, 0.1]
+          q0: [0.5, -0.5, 0, 1.0, 0, -1.63, 0]
 
-          Ts: 0.001
+          mo: 10
+          Jo: [1, 1, 1]
+
+          Ts: 0.001 # time step for the simulation
+
+          ctrl_cycle: 4 # control cycle as a multiple of Ts
 
           M: [5, 5, 5, 0.5, 0.5, 0.5]
           D: [40, 40, 40, 0.8, 0.8, 0.8]
+
+          comp_load: true
 
         </rosparam>
 

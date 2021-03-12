@@ -39,6 +39,7 @@ Robot::Robot(std::string robot_desc_param)
   Mo.submat(3,3,5,5) = Jo;
 
   if (!nh.getParam("Ts",Ts)) throw std::runtime_error("Failed to load param \"Ts\"...\n");
+  if (!nh.getParam("ctrl_cycle",ctrl_cycle)) throw std::runtime_error("Failed to load param \"ctrl_cycle\"...\n");
 
   u = arma::vec().zeros(6);
 
@@ -72,6 +73,16 @@ void Robot::startSim()
   sim_thread.detach();
 }
 
+void Robot::waitNextCycle() const
+{
+  int cycle = 0;
+  while (cycle < ctrl_cycle)
+  {
+    sim_sem.wait();
+    cycle++;
+  }
+}
+
 void Robot::publishState(bool set)
 {
   if (set) state_pub->start();
@@ -97,8 +108,12 @@ void Robot::simulationLoop()
   Timer timer;
   unsigned long cycle = Ts*1e9;
 
+  unsigned long long count = 0;
+
   while (is_running)
   {
+    count++;
+
     timer.start();
 
     // solve dynamics
@@ -111,6 +126,9 @@ void Robot::simulationLoop()
 
     F_o = obj_.graspMat(R_be) * arma::join_vert(mo*g_ , arma::vec().zeros(3));
 
+    // F_lh = {0, 0, 0, 0, 0, 0.05};
+    // F_rh = {0, 0, 0, 0, 0, 0};
+
     arma::vec F_lh2 = lh_.graspMat(R_be) * F_lh;
     arma::vec F_rh2 = rh_.graspMat(R_be) * F_rh;
 
@@ -120,9 +138,11 @@ void Robot::simulationLoop()
     // std::cerr << (F_o).t() << "\n";
     // std::cerr << (R_be*obj_.p).t() << "\n";
     // std::cerr << (obj_.p).t() << "\n";
-    // std::cerr << "R_be = \n" << R_be << "\n";
     //
-    // exit(-1);
+    // std::cerr << "G = \n" << obj_.graspMat(R_be) << "\n";
+
+    // if (count == 30) exit(-1);
+
 
     arma::vec dV = solve( M + Mi, ( - Ci - D*V + u + F_o + F_lh2 + F_rh2 ) , arma::solve_opts::likely_sympd );
     ddp = dV.subvec(0,2);

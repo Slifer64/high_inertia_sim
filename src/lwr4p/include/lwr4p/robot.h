@@ -45,9 +45,11 @@ public:
 
   void publishState(bool set=true);
 
-  void waitSimCycle() { sim_sem.wait(); }
+  void waitNextCycle() const;
 
   arma::vec getJointsPosition() const { return joint_pos; }
+
+  arma::mat getTaskRotm() const { return math_::quat2rotm(Q); }
 
   void assignJointsPosition(const arma::vec &j_pos);
 
@@ -56,7 +58,9 @@ public:
   double getObjectMass() const { return mo; }
 
   void startSim();
-  
+
+  arma::vec get_pos_ee_obj() const { return obj_.p; }
+
 private:
 
   IPoint obj_;
@@ -71,12 +75,14 @@ private:
   std::shared_ptr<robo_::KinematicChain> base_ee_chain;
   std::shared_ptr<robo_::RobotStatePublisher> state_pub;
 
-  Semaphore sim_sem;
+  mutable Semaphore sim_sem;
 
   arma::vec p, Q;
   arma::vec dp, vRot;
   arma::vec ddp, dvRot;
   double Ts;
+
+  int ctrl_cycle;
 
   arma::mat M; // robot inertia matrix
   arma::mat D; // robot damping
