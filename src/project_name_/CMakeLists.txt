@@ -57,6 +57,10 @@ include_directories(
 
 set(SRC_LIST
 
+  include/${PROJECT_NAME}/gui/train_slider.cpp
+  include/${PROJECT_NAME}/gui/wrench_ctrl_gui.cpp
+  include/${PROJECT_NAME}/gui/main_gui.cpp
+
   include/${PROJECT_NAME}/main.cpp
 
 )

@@ -39,6 +39,8 @@
 
           comp_load: true
 
+          use_gui: true
+
         </rosparam>
 
     </node>

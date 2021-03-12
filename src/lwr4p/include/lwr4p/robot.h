@@ -54,6 +54,8 @@ public:
   void assignJointsPosition(const arma::vec &j_pos);
 
   void setInputWrench(const arma::vec &u_cmd) { u = u_cmd; }
+  void setLeftHandleWrench(const arma::vec &wrench) { F_lh = wrench; }
+  void setRightHandleWrench(const arma::vec &wrench) { F_rh = wrench; }
 
   double getObjectMass() const { return mo; }
 
