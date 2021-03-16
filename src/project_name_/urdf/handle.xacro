@@ -59,13 +59,15 @@
 
         <!-- handle -->
         <joint name="${parent}_${name}_handle_joint" type="fixed">
+            <origin xyz="-${bar_length} 0 0" rpy="1.57 0 0"/>
             <parent link="${name}_base_link"/>
             <child link="${name}_handle"/>
         </joint>
 
         <link name="${name}_handle">
+
             <visual>
-                <origin xyz="-${bar_length} 0 0" rpy="1.57 0 0" />
+                <!-- <origin xyz="-${bar_length} 0 0" rpy="1.57 0 0" /> -->
                 <geometry>
                     <cylinder radius="${handle_radius}" length="${handle_length}" />
                 </geometry>
