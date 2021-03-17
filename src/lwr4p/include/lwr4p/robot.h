@@ -87,6 +87,8 @@ private:
 
   mutable Semaphore sim_sem;
 
+  bool use_lwr_dynamics;
+
   arma::vec p, Q;
   arma::vec dp, vRot;
   arma::vec ddp, dvRot;

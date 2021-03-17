@@ -41,6 +41,8 @@ Robot::Robot(std::string robot_desc_param)
   if (!nh.getParam("Ts",Ts)) throw std::runtime_error("Failed to load param \"Ts\"...\n");
   if (!nh.getParam("ctrl_cycle",ctrl_cycle)) throw std::runtime_error("Failed to load param \"ctrl_cycle\"...\n");
 
+  if (!nh.getParam("use_lwr_dynamics",use_lwr_dynamics)) use_lwr_dynamics=false;
+
   u = arma::vec().zeros(6);
 
   F_rh = arma::vec().zeros(6);
@@ -113,6 +115,9 @@ void Robot::simulationLoop()
   arma::vec F_h1(6);
   arma::vec F_h2(6);
 
+  arma::mat q_prev = joint_pos;
+  arma::mat q_dot = arma::vec().zeros(7);
+
   while (is_running)
   {
     count++;
@@ -155,7 +160,25 @@ void Robot::simulationLoop()
     F_h1 = F_lh;
     F_h2 = F_rh;
 
-    arma::vec dV = solve( M + Mo2, ( - Co2 - D*V + u + G_ro*Fo + G_rh1*F_h1 + G_rh2*F_h2 ) , arma::solve_opts::likely_sympd );
+    arma::mat Mr;
+    arma::mat Cr;
+
+    if (use_lwr_dynamics)
+    {
+      arma::mat Jr = base_ee_chain->getJacobian(joint_pos);
+      arma::mat Mq = lwr4p_inertia(joint_pos);
+      arma::mat Cq = lwr4p_coriolis(joint_pos, q_dot);
+      arma::mat inv_Mq = arma::inv(Mq);
+      Mr = arma::inv(Jr*inv_Mq*Jr.t());
+      Cr = Mr*Jr*inv_Mq*(Cq*q_dot + lwr4p_friction(q_dot) ); // - M_r * Jr_dot * q_dot
+    }
+    else
+    {
+      Mr = M;
+      Cr = D*V;
+    }
+
+    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + G_rh1*F_h1 + G_rh2*F_h2 ) , arma::solve_opts::likely_sympd );
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
 
@@ -183,12 +206,15 @@ void Robot::simulationLoop()
     joint_pos = base_ee_chain->getJointsPosition(Pose, getJointsPosition(), &found_sol);
     if (!found_sol) std::cerr << "[Robot::simulationLoop]: Failed to find inverse solution...\n";
 
+    q_dot = (joint_pos - q_prev)/Ts;
+    q_prev = joint_pos;
+
     // clock sync
     unsigned long tc = timer.elapsedNanoSec();
     if (tc < cycle) std::this_thread::sleep_for(std::chrono::nanoseconds(cycle-tc));
     else
     {
-      std::cerr << "Control cycle exceeded!!!\n";
+      std::cerr << "Control cycle exceeded! cycle: " << tc*1e-6 << " ms\n";
     }
 
     sim_sem.notify();

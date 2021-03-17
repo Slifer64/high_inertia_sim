@@ -35,7 +35,9 @@
           ctrl_cycle: 4 # control cycle as a multiple of Ts
 
           M: [5, 5, 5, 0.5, 0.5, 0.5]
-          D: [40, 40, 40, 0.8, 0.8, 0.8]
+          D: [60, 60, 60, 0.8, 0.8, 0.8]
+
+          use_lwr_dynamics: true
 
           comp_load: true
 
