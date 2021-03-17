@@ -9,6 +9,7 @@
 #include <robo_lib/robot_state_publisher.h>
 
 #include <lwr4p/utils.h>
+#include <lwr4p/lwr4p_dynamics.h>
 #include <math_lib/math_lib.h>
 
 using namespace as64_;
@@ -16,20 +17,13 @@ using namespace as64_;
 namespace lwr4p_
 {
 
-struct IPoint
+struct RPoint
 {
-  IPoint(const arma::mat &Tf=arma::mat().eye(4,4))
+  RPoint(const arma::mat &Tf=arma::mat().eye(4,4))
   {
     p = Tf.submat(0,3,2,3);
     R = Tf.submat(0,0,2,2);
     Q = math_::rotm2quat(R);
-  }
-
-  arma::mat graspMat(const arma::mat &R_base_i)
-  {
-    arma::mat G = arma::mat().eye(6,6);
-    G.submat(3,0,5,2) = math_::vec2ssMat(R_base_i*p);
-    return G;
   }
 
   arma::vec p; // position
@@ -65,8 +59,22 @@ public:
 
 private:
 
-  IPoint obj_;
-  IPoint lh_, rh_;
+  arma::mat wrenchMat(const arma::vec &r)
+  {
+    arma::mat G = arma::mat().eye(6,6);
+    G.submat(3,0,5,2) = math_::vec2ssMat(r);
+    return G;
+  }
+
+  arma::mat twistMat(const arma::vec &r)
+  {
+    arma::mat Gamma = arma::mat().eye(6,6);
+    Gamma.submat(0,3,2,5) = math_::vec2ssMat(r);
+    return Gamma;
+  }
+
+  RPoint obj_;
+  RPoint lh_, rh_;
 
   bool is_running;
 
@@ -92,13 +100,10 @@ private:
 
   arma::vec F_rh;
   arma::vec F_lh;
-  arma::vec F_o;
 
-  arma::mat Mo; // object mass-inertia matrix
+  arma::mat Mo_o; // object mass-inertia matrix
   double mo; // object mass
-  arma::mat Jo; // object inertia matrix of CoM expressed in the object local frame
-  arma::mat Ji; // inertia matrix of point i expressed in world frame
-  arma::mat Mi;
+  arma::mat Jo_o; // object inertia matrix of CoM expressed in the object local frame
 
   arma::vec g_; // gravity vector in the world frame
 

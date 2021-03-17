@@ -18,9 +18,9 @@ Robot::Robot(std::string robot_desc_param)
   std::string base_link = "base_link";
   base_ee_chain.reset(new robo_::KinematicChain(robot_desc_param, base_link, "ee_link"));
 
-  obj_ = IPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "object_link").getTaskPose(arma::vec()) );
-  lh_ = IPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "left_handle_handle").getTaskPose(arma::vec()) );
-  rh_ = IPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "right_handle_handle").getTaskPose(arma::vec()) );
+  obj_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "object_link").getTaskPose(arma::vec()) );
+  lh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "left_handle_handle").getTaskPose(arma::vec()) );
+  rh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "right_handle_handle").getTaskPose(arma::vec()) );
 
   g_ = arma::vec({0, 0, -9.81});
 
@@ -34,9 +34,9 @@ Robot::Robot(std::string robot_desc_param)
   if (!nh.getParam("mo",mo)) throw std::runtime_error("Failed to load param \"mo\"...\n");
   std::vector<double> Jo_vec;
   if (!nh.getParam("Jo",Jo_vec)) throw std::runtime_error("Failed to load param \"Jo\"...\n");
-  Jo = arma::diagmat(arma::vec(Jo_vec));
-  Mo = arma::diagmat(arma::vec({mo, mo, mo, 0,0,0}));
-  Mo.submat(3,3,5,5) = Jo;
+  Jo_o = arma::diagmat(arma::vec(Jo_vec));
+  Mo_o = arma::diagmat(arma::vec({mo, mo, mo, 0,0,0}));
+  Mo_o.submat(3,3,5,5) = Jo_o;
 
   if (!nh.getParam("Ts",Ts)) throw std::runtime_error("Failed to load param \"Ts\"...\n");
   if (!nh.getParam("ctrl_cycle",ctrl_cycle)) throw std::runtime_error("Failed to load param \"ctrl_cycle\"...\n");
@@ -45,12 +45,11 @@ Robot::Robot(std::string robot_desc_param)
 
   F_rh = arma::vec().zeros(6);
   F_lh = arma::vec().zeros(6);
-  F_o = arma::vec().zeros(6);
 
-  Ji = Jo + mo*( obj_.p*obj_.p.t() - arma::dot(obj_.p,obj_.p)*arma::mat().eye(3,3) );
-
-  Mi = Mo;
-  Mi.submat(3,3,5,5) = Ji;
+  // Ji = Jo + mo*( obj_.p*obj_.p.t() - arma::dot(obj_.p,obj_.p)*arma::mat().eye(3,3) );
+  //
+  // Mi = Mo;
+  // Mi.submat(3,3,5,5) = Ji;
 
   double pub_rate_ms=33;
   state_pub.reset(new robo_::RobotStatePublisher(robot_desc_param, base_ee_chain->joint_names, std::bind(&Robot::getJointsPosition, this), pub_rate_ms));
@@ -110,6 +109,10 @@ void Robot::simulationLoop()
 
   unsigned long long count = 0;
 
+  arma::vec Fo = arma::join_vert(mo*g_ , arma::vec().zeros(3));
+  arma::vec F_h1(6);
+  arma::vec F_h2(6);
+
   while (is_running)
   {
     count++;
@@ -120,27 +123,39 @@ void Robot::simulationLoop()
     arma::vec V = arma::join_vert(dp, vRot);
 
     arma::vec Ci = arma::vec().zeros(6,1);
-    Ci.subvec(3,5) = arma::cross(vRot, Ji*vRot);
+    // Ci.subvec(3,5) = arma::cross(vRot, Ji*vRot);
 
-    arma::mat R_be = math_::quat2rotm(Q); // base_ee_chain->getTaskRotm(getJointsPosition());
+    arma::mat R_br = math_::quat2rotm(Q); // base_ee_chain->getTaskRotm(getJointsPosition());
+    arma::mat R_ro = obj_.R;
 
-    F_o = obj_.graspMat(R_be) * arma::join_vert(mo*g_ , arma::vec().zeros(3));
+    arma::mat R_bo = R_br*R_ro;
 
-    arma::vec F_lh2 = lh_.graspMat(R_be) * F_lh;
-    arma::vec F_rh2 = rh_.graspMat(R_be) * F_rh;
+    arma::vec r_rh1 = R_br*lh_.p;
+    arma::mat G_rh1 = wrenchMat(r_rh1);
 
-    // F_lh = {0, 0, 2, 0, 0, 0};
-    // std::cerr << (lh_.G*F_lh).t() << "\n";
-    // std::cerr << (rh_.G*F_rh).t() << "\n";
-    // std::cerr << (F_o).t() << "\n";
-    // std::cerr << (R_be*obj_.p).t() << "\n";
-    // std::cerr << (obj_.p).t() << "\n";
-    //
-    // std::cerr << "G = \n" << obj_.graspMat(R_be) << "\n";
-    // if (count == 30) exit(-1);
+    arma::vec r_rh2 = R_br*rh_.p;
+    arma::mat G_rh2 = wrenchMat(r_rh2);
 
+    arma::vec r_ro = R_br*obj_.p;
 
-    arma::vec dV = solve( M + Mi, ( - Ci - D*V + u + F_o + F_lh2 + F_rh2 ) , arma::solve_opts::likely_sympd );
+    arma::mat G_ro = wrenchMat(r_ro);
+    arma::mat Gamma_or = twistMat(-r_ro);
+
+    arma::mat Jo = R_bo * Jo_o * R_bo.t();
+
+    arma::mat Mo = Mo_o; // Mo'
+    Mo.submat(3,3,5,5) = Jo;
+    arma::mat Mo2 = Gamma_or.t() * Mo * Gamma_or;
+
+    arma::vec temp(6);
+    temp.subvec(0,2) = arma::dot(vRot,vRot)*r_ro - arma::dot(vRot,r_ro)*vRot; // arma::cross(vRot, arma::cross(r_ro,vRot) );
+    temp.subvec(3,5) = arma::cross(vRot, Jo*vRot);
+    arma::mat Co2 = G_ro*Mo*temp;
+
+    F_h1 = F_lh;
+    F_h2 = F_rh;
+
+    arma::vec dV = solve( M + Mo2, ( - Co2 - D*V + u + G_ro*Fo + G_rh1*F_h1 + G_rh2*F_h2 ) , arma::solve_opts::likely_sympd );
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
 

@@ -29,6 +29,7 @@ catkin_package(
 
 SET(SRC_LIST
   src/robot.cpp
+  src/lwr4p_dynamics.cpp
 )
 
 include_directories(
