@@ -27,15 +27,15 @@
 
           q0: [0.5, -0.5, 0, 1.0, 0, -1.63, 0]
 
-          mo: 10
-          Jo: [1, 1, 1]
+          mo: 20
+          Jo: [3, 3, 3]
 
           Ts: 0.001 # time step for the simulation
 
           ctrl_cycle: 4 # control cycle as a multiple of Ts
 
           M: [5, 5, 5, 0.5, 0.5, 0.5]
-          D: [60, 60, 60, 0.8, 0.8, 0.8]
+          D: [80, 80, 80, 2, 2, 2]
 
           use_lwr_dynamics: true
 
