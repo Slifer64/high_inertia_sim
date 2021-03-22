@@ -9,7 +9,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.648221016
-    Tree Height: 437
+    Tree Height: 605
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -74,6 +74,10 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        left_handle_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         left_handle_handle:
           Alpha: 1
           Show Axes: false
@@ -135,6 +139,10 @@ Visualization Manager:
           Show Trail: false
           Value: true
         right_handle_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_handle_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -179,8 +187,10 @@ Visualization Manager:
           Value: true
         left_handle_base_link:
           Value: false
-        left_handle_handle:
+        left_handle_frame:
           Value: true
+        left_handle_handle:
+          Value: false
         left_handle_leftBar:
           Value: false
         left_handle_rightBar:
@@ -205,8 +215,10 @@ Visualization Manager:
           Value: true
         right_handle_base_link:
           Value: false
-        right_handle_handle:
+        right_handle_frame:
           Value: true
+        right_handle_handle:
+          Value: false
         right_handle_leftBar:
           Value: false
         right_handle_rightBar:
@@ -236,14 +248,16 @@ Visualization Manager:
                                 object_link:
                                   left_handle_base_link:
                                     left_handle_handle:
-                                      {}
+                                      left_handle_frame:
+                                        {}
                                     left_handle_leftBar:
                                       {}
                                     left_handle_rightBar:
                                       {}
                                   right_handle_base_link:
                                     right_handle_handle:
-                                      {}
+                                      right_handle_frame:
+                                        {}
                                     right_handle_leftBar:
                                       {}
                                     right_handle_rightBar:
@@ -319,5 +333,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 947
-  X: 535
-  Y: 103
+  X: 234
+  Y: 70

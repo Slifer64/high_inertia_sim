@@ -24,7 +24,7 @@ public:
 
   void setJointsTrajectory(const arma::vec &qT, double duration, ur_::Robot *robot_);
 
-  arma::vec getWrench(int robot_ind) const;
+  arma::vec getWrench(int robot_ind);
 
   arma::mat getRotm(int robot_ind) const;
 
@@ -77,6 +77,12 @@ public:
 */
 
 private:
+
+  arma::vec applyFextDeadZone(const arma::vec &F_ext) const;
+
+  double a_f;
+  arma::vec Fext_deadzone;
+  arma::vec Fext_prev;
 
   std::vector<arma::mat> R_;
 

@@ -4,12 +4,19 @@
 
 Ur_Wrapper::Ur_Wrapper()
 {
+  Fext_prev = arma::vec().zeros(6);
+
   R_.resize(2);
   R_[0] = R_[1] = arma::mat().eye(4,4);
 
   ros::NodeHandle nh("~");
   std::string robot_desc;
   if (!nh.getParam("ur_robot_description",robot_desc)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"ur_robot_description\".");
+
+  if (!nh.getParam("a_f",a_f)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"a_f\".");
+  std::vector<double> temp;
+  if (!nh.getParam("Fext_deadzone",temp)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"Fext_deadzone\".");
+  Fext_deadzone = temp;
 
   std::string base_link = "base_link";
   std::string tool_link = "tool_link";
@@ -65,16 +72,27 @@ void Ur_Wrapper::biasFTSensors()
   robot[1]->biasFtSensor();
 }
 
-arma::vec Ur_Wrapper::getWrench(int robot_ind) const
+arma::vec Ur_Wrapper::getWrench(int robot_ind)
 {
   // get the wrench in base frame
-  arma::vec wrench = robot[robot_ind]->getTcpWrench();
+  arma::vec Fext = robot[robot_ind]->getTcpWrench();
+
+  Fext = applyFextDeadZone(Fext);
+  Fext = a_f*Fext + (1-a_f)*Fext_prev;
+  Fext_prev = Fext;
 
   // express the wrench w.r.t. new frame
-  wrench.subvec(0,2) = R_[robot_ind]*wrench.subvec(0,2);
-  wrench.subvec(3,5) = R_[robot_ind]*wrench.subvec(3,5);
+  Fext.subvec(0,2) = R_[robot_ind]*Fext.subvec(0,2);
+  Fext.subvec(3,5) = R_[robot_ind]*Fext.subvec(3,5);
 
-  return wrench;
+  return Fext;
+}
+
+arma::vec Ur_Wrapper::applyFextDeadZone(const arma::vec &F_ext) const
+{
+  arma::vec sign_Fext = arma::sign(F_ext);
+  arma::vec Fext2 = F_ext - sign_Fext%Fext_deadzone;
+  return 0.5*(arma::sign(Fext2)+sign_Fext)%arma::abs(Fext2);
 }
 
 arma::mat Ur_Wrapper::getRotm(int robot_ind) const

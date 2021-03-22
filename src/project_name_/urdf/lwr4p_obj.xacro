@@ -47,11 +47,30 @@
 
 </link>
 
+
 <!-- ============================================================= -->
 
 <xacro:object name="" parent="robot_object_link">
   <origin xyz="-0.1 0 0.04" rpy="0 0 0" />
 </xacro:object>
+
+<!-- left handle frame -->
+<joint name="object_left_handle_frame_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 1.57 1.57"/>
+    <parent link="left_handle_handle"/>
+    <child link="left_handle_frame"/>
+</joint>
+
+<link name="left_handle_frame"/>
+
+<!-- right handle frame -->
+<joint name="object_right_handle_frame_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 1.57 1.57"/>
+    <parent link="right_handle_handle"/>
+    <child link="right_handle_frame"/>
+</joint>
+
+<link name="right_handle_frame"/>
 
 
 </robot>

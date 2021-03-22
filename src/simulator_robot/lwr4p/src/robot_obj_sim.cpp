@@ -19,8 +19,8 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   base_ee_chain.reset(new robo_::KinematicChain(robot_desc_param, base_link, "ee_link"));
 
   obj_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "object_link").getTaskPose(arma::vec()) );
-  lh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "left_handle_handle").getTaskPose(arma::vec()) );
-  rh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "right_handle_handle").getTaskPose(arma::vec()) );
+  lh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "left_handle_frame").getTaskPose(arma::vec()) );
+  rh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "right_handle_frame").getTaskPose(arma::vec()) );
 
   g_ = arma::vec({0, 0, -9.81});
 
@@ -69,7 +69,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   if (use_ur_robot)
   {
     ur_wrap.reset(new Ur_Wrapper());
-    
+
     arma::mat R_b_lh = getBaseLeftHandleRotm();
     arma::mat R_b1_lh = ur_wrap->getRotm(0);
     arma::mat R_b_b1 = R_b_lh * R_b1_lh.t();

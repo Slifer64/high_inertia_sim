@@ -61,8 +61,8 @@ public:
 
   arma::vec get_pos_ee_obj() const { return obj_.p; }
 
-  void setLHandleWrenchReadFun(const std::function<arma::vec()> &get_wrench_fun) { get_lh_wrench_ = get_wrench_fun; }
-  void setRHandleWrenchReadFun(const std::function<arma::vec()> &get_wrench_fun) { get_rh_wrench_ = get_wrench_fun; }
+  void setLHandleWrenchReadFun(std::function<arma::vec()> get_wrench_fun) { get_lh_wrench_ = get_wrench_fun; }
+  void setRHandleWrenchReadFun(std::function<arma::vec()> get_wrench_fun) { get_rh_wrench_ = get_wrench_fun; }
 
 private:
 
