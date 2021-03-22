@@ -48,10 +48,10 @@
 
           read_wrench_from_gui: true
 
-          use_ur_robot: false
+          use_ur_robot: true
 
-          ur_robot1_q0: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-          ur_robot2_q0: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+          ur_robot1_q0: [1.93, -1.05, 1.3, -1.82, -1.6, 0] # left robot
+          ur_robot2_q0: [-1.93, -2.09, -1.3, -1.29, 1.6, 0] # right robot
 
         </rosparam>
 

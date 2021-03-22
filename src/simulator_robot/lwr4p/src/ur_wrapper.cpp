@@ -13,9 +13,9 @@ Ur_Wrapper::Ur_Wrapper()
 
   std::string base_link = "base_link";
   std::string tool_link = "tool_link";
-  std::vector<std::string> robot_ip = {"10.0.0.1", "10.0.0.1"};
-  std::vector<std::string> host_ip = {"10.0.0.2", "10.0.0.2"};
-  std::vector<int> reverse_port = {8080, 8081};
+  std::vector<std::string> robot_ip = {"10.0.1.1", "10.0.0.1"};
+  std::vector<std::string> host_ip = {"10.0.1.3", "10.0.0.3"};
+  std::vector<int> reverse_port = {8081, 8080};
 
   // Initialize generic robot with the kuka-lwr model
   std::cerr << "=======> Creating ur-robot wrapper...\n";
