@@ -66,10 +66,39 @@ public:
 
 private:
 
-  Ur_Wrapper ur_wrap;
+  std::shared_ptr<Ur_Wrapper> ur_wrap;
 
   std::function<arma::vec()> get_lh_wrench_;
   std::function<arma::vec()> get_rh_wrench_;
+
+  arma::mat getBaseEeTransform()
+  {
+    arma::mat T = arma::mat().eye(4,4);
+    T.submat(0,0,2,2) = math_::quat2rotm(Q);
+    T.submat(0,3,2,3) = p;
+    return T;
+  }
+
+  arma::mat getBaseEeRotm()
+  {
+    // base_ee_chain->getTaskRotm(getJointsPosition());
+    return math_::quat2rotm(Q);
+  }
+
+  arma::mat getBaseObjRotm()
+  {
+    return getBaseEeRotm()*obj_.R;
+  }
+
+  arma::mat getBaseLeftHandleRotm()
+  {
+    return getBaseEeRotm()*lh_.R;
+  }
+
+  arma::mat getBaseRightHandleRotm()
+  {
+    return getBaseEeRotm()*rh_.R;
+  }
 
   arma::mat wrenchMat(const arma::vec &r)
   {

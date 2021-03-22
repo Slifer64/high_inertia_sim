@@ -18,6 +18,17 @@ public:
 
   void setCartVelCtrl();
 
+  void biasFTSensors();
+
+  void moveToStartPose();
+
+  void setJointsTrajectory(const arma::vec &qT, double duration, ur_::Robot *robot_);
+
+  arma::vec getWrench(int robot_ind) const;
+
+  arma::mat getRotm(int robot_ind) const;
+
+  void setWrenchRotTransform(const arma::mat &R, int robot_ind);
 /*
   void commandThread() override;
 
@@ -56,7 +67,7 @@ public:
   void setJointsPosition(const arma::vec &jpos) override { jpos_cmd.set(jpos); }
   void setJointsTorque(const arma::vec &jtorq) override { jtorque_cmd.set(jtorq); }
   void setTaskVelocity(const arma::vec &vel) override { cart_vel_cmd.set(vel); }
-  bool setJointsTrajectory(const arma::vec &qT, double duration) override;
+
 
   std::vector<std::string> getJointNames() const
   { return robot->robot_urdf->getJointsName(); }
@@ -66,6 +77,8 @@ public:
 */
 
 private:
+
+  std::vector<arma::mat> R_;
 
   // void setRobotIdle() override { robot->setNormalMode(); }
   //

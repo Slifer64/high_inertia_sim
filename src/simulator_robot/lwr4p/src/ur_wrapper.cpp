@@ -4,6 +4,9 @@
 
 Ur_Wrapper::Ur_Wrapper()
 {
+  R_.resize(2);
+  R_[0] = R_[1] = arma::mat().eye(4,4);
+
   ros::NodeHandle nh("~");
   std::string robot_desc;
   if (!nh.getParam("ur_robot_description",robot_desc)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"ur_robot_description\".");
@@ -22,6 +25,9 @@ Ur_Wrapper::Ur_Wrapper()
     robot[i].reset(new ur_::Robot(robot_desc, base_link, tool_link, host_ip[i], robot_ip[i], reverse_port[i]));
 
   std::cerr << "=======> ur-robot wrapper created successfully!\n";
+
+  moveToStartPose();
+  biasFTSensors();
 
   //
   // N_JOINTS = robot->getNumJoints();
@@ -51,6 +57,112 @@ void Ur_Wrapper::setCartVelCtrl()
 {
   robot[0]->setNormalMode();
   robot[1]->setNormalMode();
+}
+
+void Ur_Wrapper::biasFTSensors()
+{
+  robot[0]->biasFtSensor();
+  robot[1]->biasFtSensor();
+}
+
+arma::vec Ur_Wrapper::getWrench(int robot_ind) const
+{
+  // get the wrench in base frame
+  arma::vec wrench = robot[robot_ind]->getTcpWrench();
+
+  // express the wrench w.r.t. new frame
+  wrench.subvec(0,2) = R_[robot_ind]*wrench.subvec(0,2);
+  wrench.subvec(3,5) = R_[robot_ind]*wrench.subvec(3,5);
+
+  return wrench;
+}
+
+arma::mat Ur_Wrapper::getRotm(int robot_ind) const
+{
+  return robot[robot_ind]->getTaskRotm();
+}
+
+void Ur_Wrapper::setWrenchRotTransform(const arma::mat &R, int robot_ind)
+{
+  R_[robot_ind] = R;
+}
+
+void Ur_Wrapper::moveToStartPose()
+{
+  ros::NodeHandle nh("~");
+  std::vector<double> ur_robot1_q0, ur_robot2_q0;
+  if (!nh.getParam("ur_robot1_q0",ur_robot1_q0)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"ur_robot1_q0\".");
+  if (!nh.getParam("ur_robot2_q0",ur_robot2_q0)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"ur_robot2_q0\".");
+
+  arma::mat qT_mat = arma::join_horiz(arma::vec{ur_robot1_q0}, arma::vec{ur_robot2_q0});
+  std::vector<std::thread> thr(2);
+  for (int i=0; i<2; i++)
+  {
+    robot[i]->update();
+    arma::vec q0 = robot[i]->getJointsPosition();
+    arma::vec qT = qT_mat.col(i);
+    double duration = std::max(arma::max(arma::abs(qT - q0)) * 10.0 / 3.14159, 2.5);
+    thr[i] = std::thread(&Ur_Wrapper::setJointsTrajectory, this, qT, duration, robot[i].get());
+  }
+  for (int i=0; i<2; i++) thr[i].join();
+}
+
+arma::mat get5thOrder(double t, arma::vec p0, arma::vec pT, double totalTime)
+{
+  arma::mat retTemp = arma::zeros<arma::mat>(p0.n_rows, 3);
+
+  if (t < 0)
+  {
+    // before start
+    retTemp.col(0) = p0;
+  }
+  else if (t > totalTime)
+  {
+    // after the end
+    retTemp.col(0) = pT;
+  }
+  else
+  {
+    // somewhere betweeen ...
+    // position
+    retTemp.col(0) = p0 +
+                     (pT - p0) * (10 * pow(t / totalTime, 3) -
+                     15 * pow(t / totalTime, 4) +
+                     6 * pow(t / totalTime, 5));
+    // vecolity
+    retTemp.col(1) = (pT - p0) * (30 * pow(t, 2) / pow(totalTime, 3) -
+                     60 * pow(t, 3) / pow(totalTime, 4) +
+                     30 * pow(t, 4) / pow(totalTime, 5));
+    // acceleration
+    retTemp.col(2) = (pT - p0) * (60 * t / pow(totalTime, 3) -
+                     180 * pow(t, 2) / pow(totalTime, 4) +
+                     120 * pow(t, 3) / pow(totalTime, 5));
+  }
+
+  // return vector
+  return retTemp;
+}
+
+void Ur_Wrapper::setJointsTrajectory(const arma::vec &qT, double duration, ur_::Robot *robot_)
+{
+  robot_->setNormalMode();
+  robot_->update();
+  arma::vec q0 = robot_->getJointsPosition();
+  arma::vec qref = q0;
+  double t = 0.0;
+
+  while (t < duration)
+  {
+    if (!robot_->isOk())
+    {
+      std::cerr << "An error occured on the robot!\n";
+      return;
+    }
+
+    t += 0.002;
+    robot_->setJointsPosition(get5thOrder(t, q0, qT, duration).col(0));
+    robot_->update();
+  }
 }
 
 /*
@@ -238,53 +350,6 @@ void Ur_Wrapper::commandThread()
   KRC_tick.notify(); // unblock in case wait was called from another thread
 }
 
-bool Ur_Wrapper::setJointsTrajectory(const arma::vec &qT, double duration)
-{
-  // keep last known robot mode
-  rw_::Mode prev_mode = this->getMode();
-  // start controller
-  this->setMode(rw_::JOINT_POS_CONTROL);
-  // std::cerr << "[Ur_Wrapper::setJointsTrajectory]: Mode changed to \"IDLE\"!\n";
-
-  // waits for the next tick
-  update();
-
-  arma::vec q0 = robot->getJointsPosition();
-  arma::vec qref = q0;
-  // std::cerr << "q0 = " << q0.t()*180/3.14159 << "\n";
-  // std::cerr << "duration = " << duration << " sec\n";
-
-  // robot->setMode(lwr4p::Mode::POSITION_CONTROL);
-  // initalize time
-  double t = 0.0;
-  // the main while
-  while (t < duration)
-  {
-    if (!isOk())
-    {
-      err_msg = "An error occured on the robot!";
-      return false;
-    }
-
-    // compute time now
-    t += getCtrlCycle();
-    // update trajectory
-    qref = get5thOrder(t, q0, qT, duration).col(0);
-
-    // set joint positions
-    jpos_cmd.set(qref);
-    //setJointPosition(qref);
-
-    // waits for the next tick
-    update();
-  }
-  // reset last known robot mode
-  this->setMode(prev_mode);
-
-  // std::cerr << "[Ur_Wrapper::setJointsTrajectory]: Mode restored to previous mode!\n";
-
-  return true;
-}
 
 void Ur_Wrapper::stop()
 {

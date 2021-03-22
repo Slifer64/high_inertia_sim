@@ -76,10 +76,6 @@ public:
       robot->setRHandleWrenchReadFun([this](){ return gui->rh_ctrl_->getWrench(); });
     }
 
-    std::vector<double> q0;
-    if (!nh.getParam("q0",q0)) throw std::runtime_error("Failed to load param \"q0\"...\n");
-    robot->assignJointsPosition(q0);
-
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     robot->startSim();

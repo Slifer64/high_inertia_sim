@@ -48,6 +48,11 @@
 
           read_wrench_from_gui: true
 
+          use_ur_robot: false
+
+          ur_robot1_q0: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+          ur_robot2_q0: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+
         </rosparam>
 
     </node>

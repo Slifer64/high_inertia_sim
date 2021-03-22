@@ -59,7 +59,30 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   double pub_rate_ms=33;
   state_pub.reset(new robo_::RobotStatePublisher(robot_desc_param, base_ee_chain->joint_names, std::bind(&RobotObjSim::getJointsPosition, this), pub_rate_ms));
 
-  assignJointsPosition(arma::vec().zeros(7));
+  std::vector<double> q0;
+  if (!nh.getParam("q0",q0)) throw std::runtime_error("Failed to load param \"q0\"...\n");
+  assignJointsPosition(q0);
+
+  bool use_ur_robot;
+  if (!nh.getParam("use_ur_robot",use_ur_robot)) use_ur_robot=false;
+
+  if (use_ur_robot)
+  {
+    ur_wrap.reset(new Ur_Wrapper());
+    
+    arma::mat R_b_lh = getBaseLeftHandleRotm();
+    arma::mat R_b1_lh = ur_wrap->getRotm(0);
+    arma::mat R_b_b1 = R_b_lh * R_b1_lh.t();
+    ur_wrap->setWrenchRotTransform(R_b_b1, 0);
+
+    arma::mat R_b_rh = getBaseRightHandleRotm();
+    arma::mat R_b2_rh = ur_wrap->getRotm(1);
+    arma::mat R_b_b2 = R_b_rh * R_b2_rh.t();
+    ur_wrap->setWrenchRotTransform(R_b_b2, 1);
+
+    setLHandleWrenchReadFun([this](){ return ur_wrap->getWrench(0); } );
+    setRHandleWrenchReadFun([this](){ return ur_wrap->getWrench(1); } );
+  }
 }
 
 RobotObjSim::~RobotObjSim()
@@ -133,7 +156,7 @@ void RobotObjSim::simulationLoop()
     arma::vec Ci = arma::vec().zeros(6,1);
     // Ci.subvec(3,5) = arma::cross(vRot, Ji*vRot);
 
-    arma::mat R_br = math_::quat2rotm(Q); // base_ee_chain->getTaskRotm(getJointsPosition());
+    arma::mat R_br = getBaseEeRotm();
     arma::mat R_ro = obj_.R;
 
     arma::mat R_bo = R_br*R_ro;
