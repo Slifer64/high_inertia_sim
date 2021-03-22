@@ -48,6 +48,9 @@ Robot::Robot(std::string robot_desc_param)
   F_rh = arma::vec().zeros(6);
   F_lh = arma::vec().zeros(6);
 
+  setLHandleWrenchReadFun([](){ return arma::vec().zeros(6); } );
+  setRHandleWrenchReadFun([](){ return arma::vec().zeros(6); } );
+
   // Ji = Jo + mo*( obj_.p*obj_.p.t() - arma::dot(obj_.p,obj_.p)*arma::mat().eye(3,3) );
   //
   // Mi = Mo;
@@ -157,8 +160,8 @@ void Robot::simulationLoop()
     temp.subvec(3,5) = arma::cross(vRot, Jo*vRot);
     arma::mat Co2 = G_ro*Mo*temp;
 
-    F_h1 = F_lh;
-    F_h2 = F_rh;
+    F_h1 = get_lh_wrench_(); //F_lh;
+    F_h2 = get_rh_wrench_(); //F_rh;
 
     arma::mat Mr;
     arma::mat Cr;

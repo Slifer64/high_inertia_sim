@@ -48,8 +48,9 @@ public:
   void assignJointsPosition(const arma::vec &j_pos);
 
   void setInputWrench(const arma::vec &u_cmd) { u = u_cmd; }
-  void setLeftHandleWrench(const arma::vec &wrench) { F_lh = wrench; }
-  void setRightHandleWrench(const arma::vec &wrench) { F_rh = wrench; }
+
+  // void setLeftHandleWrench(const arma::vec &wrench) { F_lh = wrench; }
+  // void setRightHandleWrench(const arma::vec &wrench) { F_rh = wrench; }
 
   double getObjectMass() const { return mo; }
 
@@ -57,7 +58,14 @@ public:
 
   arma::vec get_pos_ee_obj() const { return obj_.p; }
 
+  void setLHandleWrenchReadFun(const std::function<arma::vec()> &get_wrench_fun) { get_lh_wrench_ = get_wrench_fun; }
+  void setRHandleWrenchReadFun(const std::function<arma::vec()> &get_wrench_fun) { get_rh_wrench_ = get_wrench_fun; }
+
 private:
+
+
+  std::function<arma::vec()> get_lh_wrench_;
+  std::function<arma::vec()> get_rh_wrench_;
 
   arma::mat wrenchMat(const arma::vec &r)
   {

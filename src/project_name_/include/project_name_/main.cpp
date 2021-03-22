@@ -7,6 +7,7 @@
 
 #include <gui_lib/utils.h>
 #include <thread_lib/thread_lib.h>
+#include <io_lib/print_utils.h>
 
 #include <project_name_/gui/main_gui.h>
 
@@ -27,14 +28,17 @@ public:
     gui_finished = false;
     std::thread gui_thr = std::thread([this]()
     {
-      gui_::launchGui([this](){ gui=new MainWindow(); return gui; }, &gui_finished, QThread::LowestPriority);
+      gui_::launchGui([this](){
+        gui=new MainWindow();
+        this->gui_created_sem.notify();
+        return gui;
+      }, &gui_finished, QThread::LowestPriority);
     });
 
     int err_code = thr_::setThreadPriority(gui_thr, SCHED_OTHER, 0);
     gui_thr.detach();
 
-    get_lh_wrench = [this](){ return gui->lh_ctrl_->getWrench(); };
-    get_rh_wrench = [this](){ return gui->rh_ctrl_->getWrench(); };
+    gui_created_sem.wait();
 
     // if (err_code) PRINT_WARNING_MSG("[MainController::launch]: Failed to set thread priority! Reason:\n" + thr_::setThreadPriorErrMsg(err_code) + "\n", std::cerr);
     // else PRINT_INFO_MSG("[MainController::launch]: Set thread priority successfully!\n", std::cerr);
@@ -54,9 +58,23 @@ public:
     if (!nh.getParam("use_gui",use_gui)) use_gui = false;
     if (use_gui) launchGui();
 
+    bool read_wrench_from_gui;
+    if (!nh.getParam("read_wrench_from_gui",read_wrench_from_gui)) read_wrench_from_gui = false;
+    if (!use_gui && read_wrench_from_gui)
+    {
+      PRINT_WARNING_MSG("\"read_wrench_from_gui\"=true, however \"use_gui\"=false...\n Setting \"read_wrench_from_gui\" to false!");
+      read_wrench_from_gui = false;
+    }
+
     std::shared_ptr<lwr4p_::Robot> robot;
     robot.reset(new lwr4p_::Robot(robot_desc));
     robot->publishState();
+
+    if (read_wrench_from_gui)
+    {
+      robot->setLHandleWrenchReadFun([this](){ return gui->lh_ctrl_->getWrench(); });
+      robot->setRHandleWrenchReadFun([this](){ return gui->rh_ctrl_->getWrench(); });
+    }
 
     std::vector<double> q0;
     if (!nh.getParam("q0",q0)) throw std::runtime_error("Failed to load param \"q0\"...\n");
@@ -81,9 +99,6 @@ public:
         robot->setInputWrench(u);
       }
 
-      robot->setLeftHandleWrench(get_lh_wrench());
-      robot->setRightHandleWrench(get_rh_wrench());
-
       robot->waitNextCycle();
     }
   }
@@ -91,8 +106,7 @@ public:
   bool gui_finished;
   MainWindow *gui;
 
-  std::function<arma::vec()> get_lh_wrench;
-  std::function<arma::vec()> get_rh_wrench;
+  thr_::Semaphore gui_created_sem;
 };
 
 // ========================================================

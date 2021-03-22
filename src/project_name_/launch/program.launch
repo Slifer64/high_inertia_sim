@@ -43,6 +43,8 @@
 
           use_gui: true
 
+          read_wrench_from_gui: true
+
         </rosparam>
 
     </node>
