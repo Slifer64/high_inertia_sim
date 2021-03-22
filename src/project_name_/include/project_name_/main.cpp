@@ -3,7 +3,7 @@
 #include <cstring>
 #include <ros/ros.h>
 
-#include <lwr4p/robot.h>
+#include <lwr4p/robot_obj_sim.h>
 
 #include <gui_lib/utils.h>
 #include <thread_lib/thread_lib.h>
@@ -49,7 +49,7 @@ public:
     ros::NodeHandle nh("~");
 
     std::string robot_desc;
-    if (!nh.getParam("robot_description",robot_desc)) throw std::runtime_error("Failed to load param \"robot_description\"...");
+    if (!nh.getParam("robot_obj_description",robot_desc)) throw std::runtime_error("Failed to load param \"robot_obj_description\"...");
 
     bool comp_load;
     if (!nh.getParam("comp_load",comp_load)) comp_load = false;
@@ -66,8 +66,8 @@ public:
       read_wrench_from_gui = false;
     }
 
-    std::shared_ptr<lwr4p_::Robot> robot;
-    robot.reset(new lwr4p_::Robot(robot_desc));
+    std::shared_ptr<lwr4p_::RobotObjSim> robot;
+    robot.reset(new lwr4p_::RobotObjSim(robot_desc));
     robot->publishState();
 
     if (read_wrench_from_gui)
