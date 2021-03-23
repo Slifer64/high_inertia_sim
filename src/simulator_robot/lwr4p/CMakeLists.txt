@@ -18,6 +18,7 @@ find_package(catkin REQUIRED
   math_lib
   thread_lib
   ur_robot
+  io_lib
 )
 
 catkin_package(
@@ -54,5 +55,6 @@ target_link_libraries(${PROJECT_NAME}
   math_lib
   thread_lib
   ur_robot
+  io_lib
   ${catkin_LIBRARIES}
 )

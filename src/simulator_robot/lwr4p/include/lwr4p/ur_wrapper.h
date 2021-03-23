@@ -22,13 +22,17 @@ public:
 
   void moveToStartPose();
 
-  void setJointsTrajectory(const arma::vec &qT, double duration, ur_::Robot *robot_);
+  void setJointsTrajectory(const arma::vec &qT, ur_::Robot *robot_);
+
+  void setCartTrajectory(const arma::vec &poseT, ur_::Robot *robot_);
 
   arma::vec getWrench(int robot_ind);
 
   arma::mat getRotm(int robot_ind) const;
 
   void setWrenchRotTransform(const arma::mat &R, int robot_ind);
+
+  arma::vec getTaskPose(int robot_ind) const;
 /*
   void commandThread() override;
 
@@ -77,6 +81,8 @@ public:
 */
 
 private:
+
+  double Ts;
 
   arma::vec applyFextDeadZone(const arma::vec &F_ext) const;
 

@@ -24,6 +24,15 @@
 
         <rosparam>
 
+          left_robot_host_ip: "10.0.1.3"
+          left_robot_robot_ip: "10.0.1.1"
+          left_robot_reverse_port: 8081
+
+          right_robot_host_ip: "10.0.0.3" # "127.0.0.1" #
+          right_robot_robot_ip: "10.0.0.1" # "127.0.0.1" # 
+          right_robot_reverse_port: 8080
+
+
           ur_robot_description: "ur_robot_description"
 
           robot_obj_description: "robot_obj_description"
@@ -37,10 +46,10 @@
 
           ctrl_cycle: 3 # control cycle as a multiple of Ts
 
-          M: [5, 5, 5, 0.5, 0.5, 0.5]
-          D: [80, 80, 80, 2, 2, 2]
+          M: [10, 10, 10, 1, 1, 1]
+          D: [150, 150, 150, 10, 10, 10]
 
-          use_lwr_dynamics: true
+          use_lwr_dynamics: false
 
           comp_load: true
 
@@ -51,9 +60,14 @@
 
           ur_robot1_q0: [1.93, -1.05, 1.3, -1.85, -1.56, -2.78] # left robot
           ur_robot2_q0: [-1.93, -2.09, -1.3, -1.31, 1.6, -3.49] # right robot
+          #ur_robot2_q0: [-1.7, -2.09, -1.3, -1.1, 1.2, -3.1] # right robot
 
           a_f: 0.1
           Fext_deadzone: [0.5, 0.5, 0.5, 0.05, 0.05, 0.05]
+
+          #p0_left: [0.36, -0.6, 0.34]
+          #p0_right: [-0.36, -0.6, 0.34]
+          #R0: [1, 0, 0, 0, -1, 0, 0, 0, -1]
 
         </rosparam>
 
