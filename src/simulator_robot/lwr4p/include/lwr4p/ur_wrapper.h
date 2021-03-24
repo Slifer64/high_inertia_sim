@@ -40,11 +40,13 @@ public:
 
 private:
 
+  std::vector<arma::vec> pose, Vel;
+
   arma::mat T_b1_b2;
   arma::mat T_h1_h2;
 
-  arma::mat T_b_b1;
-  arma::mat T_b_b2;
+  arma::mat T_b_b1, R_b1_b;
+  arma::mat T_b_b2, R_b2_b;
 
   arma::mat T_b1_h1_0;
   arma::mat T_b2_h2_0;
@@ -52,6 +54,8 @@ private:
   double Ts;
 
   arma::vec applyFextDeadZone(const arma::vec &F_ext) const;
+
+  arma::vec calcVelocity_with_click(const arma::vec &V, int i);
 
   double a_f;
   arma::vec Fext_deadzone;

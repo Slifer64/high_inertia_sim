@@ -89,15 +89,15 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   {
     ur_wrap.reset(new Ur_Wrapper(get_transform_lh_rh(), T_b_h1, T_b_h2));
 
-    arma::mat R_b_lh = getBaseLeftHandleRotm();
-    arma::mat R_b1_lh = ur_wrap->getRotm(0);
-    arma::mat R_b_b1 = R_b_lh * R_b1_lh.t();
-    ur_wrap->setWrenchRotTransform(R_b_b1, 0);
-
-    arma::mat R_b_rh = getBaseRightHandleRotm();
-    arma::mat R_b2_rh = ur_wrap->getRotm(1);
-    arma::mat R_b_b2 = R_b_rh * R_b2_rh.t();
-    ur_wrap->setWrenchRotTransform(R_b_b2, 1);
+    // arma::mat R_b_lh = getBaseLeftHandleRotm();
+    // arma::mat R_b1_lh = ur_wrap->getRotm(0);
+    // arma::mat R_b_b1 = R_b_lh * R_b1_lh.t();
+    // ur_wrap->setWrenchRotTransform(R_b_b1, 0);
+    //
+    // arma::mat R_b_rh = getBaseRightHandleRotm();
+    // arma::mat R_b2_rh = ur_wrap->getRotm(1);
+    // arma::mat R_b_b2 = R_b_rh * R_b2_rh.t();
+    // ur_wrap->setWrenchRotTransform(R_b_b2, 1);
 
     setLHandleWrenchReadFun([this](){ return ur_wrap->getWrench(0); } );
     setRHandleWrenchReadFun([this](){ return ur_wrap->getWrench(1); } );
@@ -241,7 +241,10 @@ void RobotObjSim::simulationLoop()
     dp += ddp*Ts;
     vRot += dvRot*Ts;
 
-    send_feedback(arma::join_vert(dp, vRot));
+    arma::vec V_h1 = twistMat(-r_rh1)*arma::join_vert(dp, vRot);
+    arma::vec V_h2 = twistMat(-r_rh2)*arma::join_vert(dp, vRot);
+
+    send_feedback(arma::join_vert(V_h1, V_h2));
 
     // update robot joints pos;
     // arma::mat J = base_ee_chain->getJacobian(getJointsPosition());

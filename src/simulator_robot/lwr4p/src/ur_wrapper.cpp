@@ -84,18 +84,29 @@ arma::vec quatlogDot2rotVel(const arma::vec &Qlog_dot, const arma::vec &Q)
 
 Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2)
 {
+  R_.resize(2);
+  R_[0] = R_[1] = arma::mat().eye(4,4);
+
+  T_b1_b2 = arma::mat().eye(4,4);
+  T_b1_b2(0,3) = 1.1;
+
   T_h1_h2 = T_lh_rh;
 
-  arma::vec p = {0.25, -0.6, 0.34}; // h1 position w.r.t. left robot
+  arma::vec p = {0.39, -0.6, 0.34}; // h1 position w.r.t. left robot
+  p(0) = (arma::norm(T_b1_b2.submat(0,3,2,3)) - arma::norm(T_h1_h2.submat(0,3,2,3))) / 2;
+
   arma::mat R = {{1, 0, 0}, {0, -1, 0}, {0, 0, -1}}; // h1 orientation w.r.t. left robot
 
   arma::mat T_b1_h1 = arma::mat().eye(4,4);
-  T_b1_h1_0.submat(0,0,2,3) = arma::join_vert(R, p);
+  T_b1_h1.submat(0,0,2,3) = arma::join_horiz(R, p);
 
   arma::mat T_b2_h2 = arma::inv(T_b1_b2) * T_b1_h1 * T_h1_h2;
 
   T_b_b1 = T_b_h1 * arma::inv(T_b1_h1);
   T_b_b2 = T_b_h2 * arma::inv(T_b2_h2);
+
+  setWrenchRotTransform(T_b_b1.submat(0,0,2,2), 0);
+  setWrenchRotTransform(T_b_b2.submat(0,0,2,2), 1);
 
   T_b1_h1_0 = T_b1_h1;
   T_b2_h2_0 = T_b2_h2;
@@ -103,11 +114,13 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
   Ts = 0.002;
   Fext_prev = arma::vec().zeros(6);
 
-  R_.resize(2);
-  R_[0] = R_[1] = arma::mat().eye(4,4);
-
-  T_b1_b2 = arma::mat().eye(4,4);
-  T_b1_b2(3,0) = 1.1;
+  // std::cout << "T_b1_b2 = \n" << T_b1_b2 << "\n";
+  // std::cout << "T_h1_h2 = \n" << T_h1_h2 << "\n";
+  // std::cout << "T_b1_h1 = \n" << T_b1_h1 << "\n";
+  // std::cout << "T_b2_h2 = \n" << T_b2_h2 << "\n";
+  // std::cout << "T_b_b1 = \n" << T_b_b1 << "\n";
+  // std::cout << "T_b_b2 = \n" << T_b_b2 << "\n";
+  // exit(-1);
 
   ros::NodeHandle nh("~");
   std::string robot_desc;
@@ -132,30 +145,75 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
 
   PRINT_INFO_MSG("left_robot: host_ip: " + host_ip[0] + "\n");
   PRINT_INFO_MSG("left_robot: robot_ip: " + robot_ip[0] + "\n");
+  PRINT_INFO_MSG("left_robot: reverse_port: " + std::to_string(reverse_port[0]) + "\n\n");
 
   PRINT_INFO_MSG("right_robot: host_ip: " + host_ip[1] + "\n");
   PRINT_INFO_MSG("right_robot: robot_ip: " + robot_ip[1] + "\n");
+  PRINT_INFO_MSG("right_robot: reverse_port: " + std::to_string(reverse_port[1]) + "\n\n");
 
   // Initialize generic robot with the kuka-lwr model
-  std::cerr << "=======> Creating ur-robot wrapper...\n";
+  PRINT_INFO_MSG("=======> Creating ur-robot wrapper...\n");
 
+  robot.resize(2);
   for (int i=0; i<2; i++)
     robot[i].reset(new ur_::Robot(robot_desc, "base_link", "tool_link", host_ip[i], robot_ip[i], reverse_port[i]));
 
-  std::cerr << "=======> ur-robot wrapper created successfully!\n";
+  PRINT_INFO_MSG("=======> ur-robot wrapper created successfully!\n");
 
   moveToStartPose();
   biasFTSensors();
+
+  pose.resize(2);
+  Vel.resize(2);
+  for (int i=0; i<2; i++)
+  {
+    pose[i] = getTaskPose(i);
+    Vel[i] = {0,0,0,0,0,0};
+  }
+
+  R_b1_b = T_b_b1.submat(0,0,2,2).t();
+  R_b2_b = T_b_b2.submat(0,0,2,2).t();
 }
 
 Ur_Wrapper::~Ur_Wrapper()
 {
+  robot[0]->setTaskVelocity({0,0,0,0,0,0});
+  robot[1]->setTaskVelocity({0,0,0,0,0,0});
   // run_ = false;
 }
 
 void Ur_Wrapper::setVelocity(const arma::vec &V)
 {
+  arma::vec V1 = V.subvec(0,5);
+  V1.subvec(0,2) = R_b1_b*V1.subvec(0,2);
+  V1.subvec(3,5) = R_b1_b*V1.subvec(3,5);
 
+  arma::vec V2 = V.subvec(6,11);
+  V2.subvec(0,2) = R_b2_b*V2.subvec(0,2);
+  V2.subvec(3,5) = R_b2_b*V2.subvec(3,5);
+
+  // robot[0]->setTaskVelocity(V1);
+  // robot[1]->setTaskVelocity(V2);
+
+  arma::vec V1_cmd = calcVelocity_with_click(V1, 0);
+  arma::vec V2_cmd = calcVelocity_with_click(V2, 1);
+  robot[0]->setTaskVelocity(V1_cmd);
+  robot[1]->setTaskVelocity(V2_cmd);
+}
+
+arma::vec Ur_Wrapper::calcVelocity_with_click(const arma::vec &V, int i)
+{
+  pose[i].subvec(0,2) += Vel[i].subvec(0,2)*Ts;
+  pose[i].subvec(3,6) = math_::quatProd(math_::quatExp(Vel[i].subvec(3,5)*Ts) , pose[i].subvec(3,6));
+  Vel[i] = V;
+
+  arma::vec pose_robot = getTaskPose(i);
+
+  arma::vec V_cmd = V;
+  V_cmd.subvec(0,2) += 4*(pose[i].subvec(0,2) - pose_robot.subvec(0,2));
+  V_cmd.subvec(3,5) += 3*math_::quatLog( math_::quatDiff(pose[i].subvec(3,6), pose_robot.subvec(3,6)) );
+
+  return V_cmd;
 }
 
 void Ur_Wrapper::waitNextCycle()
@@ -224,10 +282,6 @@ void Ur_Wrapper::moveToStartPose()
   for (int i=0; i<2; i++) thr[i] = std::thread(&Ur_Wrapper::setJointsTrajectory, this, qT_mat.col(i), robot[i].get());
   for (int i=0; i<2; i++) thr[i].join();
 
-  arma::vec p = {0.25, -0.6, 0.34};
-  arma::mat R = {{1, 0, 0}, {0, -1, 0}, {0, 0, -1}};
-  arma::mat q = math_::rotm2quat(R);
-
   arma::vec p_b1_h1 = T_b1_h1_0.submat(0,3,2,3);
   arma::mat Q_b1_h1 = math_::rotm2quat(T_b1_h1_0.submat(0,0,2,2));
 
@@ -243,6 +297,8 @@ void Ur_Wrapper::moveToStartPose()
   // move with Cartesian trajectory to desired pose
   for (int i=0; i<2; i++) thr[i] = std::thread(&Ur_Wrapper::setCartTrajectory, this, poseT_mat.col(i), robot[i].get());
   for (int i=0; i<2; i++) thr[i].join();
+
+  PRINT_INFO_MSG("DONE!\n");
 }
 
 void Ur_Wrapper::setJointsTrajectory(const arma::vec &qT, ur_::Robot *robot_)

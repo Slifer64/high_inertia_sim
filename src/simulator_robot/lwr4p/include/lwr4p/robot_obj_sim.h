@@ -72,7 +72,7 @@ public:
   void setLHandleWrenchReadFun(std::function<arma::vec()> get_wrench_fun) { get_lh_wrench_ = get_wrench_fun; }
   void setRHandleWrenchReadFun(std::function<arma::vec()> get_wrench_fun) { get_rh_wrench_ = get_wrench_fun; }
 
-  arma::mat get_transform_lh_rh() const { arma::inv(lh_.getTransformFromBase()) * rh_.getTransformFromBase(); }
+  arma::mat get_transform_lh_rh() const { return arma::inv(lh_.getTransformFromBase()) * rh_.getTransformFromBase(); }
 
 private:
 

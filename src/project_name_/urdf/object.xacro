@@ -32,13 +32,13 @@
       </link>
 
       <xacro:handle parent="${name}object_link" name="${name}left_handle">
-        <origin xyz="-${obj_width/2} -${obj_length*0.2} 0" rpy="0 0 0" />
+        <origin xyz="-${obj_width/2} -0.22 0" rpy="0 0 0" />
       </xacro:handle>
 
       <xacro:handle parent="${name}object_link" name="${name}right_handle">
-        <origin xyz="-${obj_width/2} ${obj_length*0.2} 0" rpy="0 0 0" />
+        <origin xyz="-${obj_width/2} 0.22 0" rpy="0 0 0" />
       </xacro:handle>
-    
+
 
     </xacro:macro>
 
