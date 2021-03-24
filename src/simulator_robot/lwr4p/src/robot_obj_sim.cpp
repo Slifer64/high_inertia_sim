@@ -1,6 +1,7 @@
 #include <lwr4p/robot_obj_sim.h>
 
 #include <thread_lib/thread_lib.h>
+#include <io_lib/print_utils.h>
 
 #include <exception>
 
@@ -15,8 +16,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
   is_running = true;
 
-  std::string base_link = "base_link";
-  base_ee_chain.reset(new robo_::KinematicChain(robot_desc_param, base_link, "ee_link"));
+  base_ee_chain.reset(new robo_::KinematicChain(robot_desc_param, "base_link", "ee_link"));
 
   obj_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "object_link").getTaskPose(arma::vec()) );
   lh_ = RPoint( robo_::KinematicChain(robot_desc_param, "ee_link", "left_handle_frame").getTaskPose(arma::vec()) );
@@ -50,11 +50,27 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
   setLHandleWrenchReadFun([](){ return arma::vec().zeros(6); } );
   setRHandleWrenchReadFun([](){ return arma::vec().zeros(6); } );
+  send_feedback = [](const arma::vec &){ };
 
-  // Ji = Jo + mo*( obj_.p*obj_.p.t() - arma::dot(obj_.p,obj_.p)*arma::mat().eye(3,3) );
-  //
-  // Mi = Mo;
-  // Mi.submat(3,3,5,5) = Ji;
+  wait_next_cycle = [this]()
+  {
+    static bool initialized  = false;
+    static Timer timer;
+    static double cycle_ns = Ts*1e9;
+
+    if (!initialized)
+    {
+      initialized = true;
+      timer.start();
+    }
+
+    double elaps_t = timer.elapsedNanoSec();
+
+    unsigned long long sleep_t = (cycle_ns - elaps_t);
+    if (sleep_t > 0) std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_t));
+    timer.start();
+  };
+
 
   double pub_rate_ms=33;
   state_pub.reset(new robo_::RobotStatePublisher(robot_desc_param, base_ee_chain->joint_names, std::bind(&RobotObjSim::getJointsPosition, this), pub_rate_ms));
@@ -63,12 +79,15 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   if (!nh.getParam("q0",q0)) throw std::runtime_error("Failed to load param \"q0\"...\n");
   assignJointsPosition(q0);
 
+  arma::mat T_b_h1 = robo_::KinematicChain(robot_desc_param, "base_link", "left_handle_frame").getTaskPose(joint_pos);
+  arma::mat T_b_h2 = robo_::KinematicChain(robot_desc_param, "base_link", "right_handle_frame").getTaskPose(joint_pos);
+
   bool use_ur_robot;
   if (!nh.getParam("use_ur_robot",use_ur_robot)) use_ur_robot=false;
 
   if (use_ur_robot)
   {
-    ur_wrap.reset(new Ur_Wrapper());
+    ur_wrap.reset(new Ur_Wrapper(get_transform_lh_rh(), T_b_h1, T_b_h2));
 
     arma::mat R_b_lh = getBaseLeftHandleRotm();
     arma::mat R_b1_lh = ur_wrap->getRotm(0);
@@ -82,7 +101,12 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
     setLHandleWrenchReadFun([this](){ return ur_wrap->getWrench(0); } );
     setRHandleWrenchReadFun([this](){ return ur_wrap->getWrench(1); } );
+
+    send_feedback = [this](const arma::vec &V){ this->ur_wrap->setVelocity(V); };
+
+    wait_next_cycle = [this](){ this->ur_wrap->waitNextCycle(); };
   }
+
 }
 
 RobotObjSim::~RobotObjSim()
@@ -132,8 +156,7 @@ void RobotObjSim::assignJointsPosition(const arma::vec &j_pos)
 
 void RobotObjSim::simulationLoop()
 {
-  Timer timer;
-  unsigned long cycle = Ts*1e9;
+  unsigned long cycle_ns = Ts*1e9;
 
   unsigned long long count = 0;
 
@@ -144,11 +167,15 @@ void RobotObjSim::simulationLoop()
   arma::mat q_prev = joint_pos;
   arma::mat q_dot = arma::vec().zeros(7);
 
+  wait_next_cycle();
+
+  // Timer timer;
+
   while (is_running)
   {
     count++;
 
-    timer.start();
+    // timer.start();
 
     // solve dynamics
     arma::vec V = arma::join_vert(dp, vRot);
@@ -214,6 +241,8 @@ void RobotObjSim::simulationLoop()
     dp += ddp*Ts;
     vRot += dvRot*Ts;
 
+    send_feedback(arma::join_vert(dp, vRot));
+
     // update robot joints pos;
     // arma::mat J = base_ee_chain->getJacobian(getJointsPosition());
     // arma::vec p_current = base_ee_chain->getTaskPosition(getJointsPosition());
@@ -227,7 +256,7 @@ void RobotObjSim::simulationLoop()
     arma::mat Pose = arma::mat().eye(4,4);
     Pose.submat(0,3,2,3) = p;
     Pose.submat(0,0,2,2) = math_::quat2rotm(Q);
-
+//
     bool found_sol = false;
     joint_pos = base_ee_chain->getJointsPosition(Pose, getJointsPosition(), &found_sol);
     if (!found_sol) std::cerr << "[RobotObjSim::simulationLoop]: Failed to find inverse solution...\n";
@@ -236,12 +265,11 @@ void RobotObjSim::simulationLoop()
     q_prev = joint_pos;
 
     // clock sync
-    unsigned long tc = timer.elapsedNanoSec();
-    if (tc < cycle) std::this_thread::sleep_for(std::chrono::nanoseconds(cycle-tc));
-    else
-    {
-      std::cerr << "Control cycle exceeded! cycle: " << tc*1e-6 << " ms\n";
-    }
+    wait_next_cycle();
+    // check delays
+    // double tc = timer.elapsedNanoSec();
+    // std::cout << "tc = " << tc*1e-6 << " ms\n";
+    // if (tc > 1.02*cycle_ns) PRINT_WARNING_MSG("Control cycle exceeded! cycle: " + std::to_string(tc*1e-6) + " ms\n");
 
     sim_sem.notify();
   }

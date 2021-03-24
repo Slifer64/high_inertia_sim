@@ -13,7 +13,7 @@
 class Ur_Wrapper
 {
 public:
-  Ur_Wrapper();
+  Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2);
   ~Ur_Wrapper();
 
   void setCartVelCtrl();
@@ -34,12 +34,20 @@ public:
 
   arma::vec getTaskPose(int robot_ind) const;
 
+  void setVelocity(const arma::vec &V);
+
+  void waitNextCycle();
+
 private:
 
-  //arma::vec transfromPose(const arma::vec &pose, int from_robot_ind, int to_robot_ind)
+  arma::mat T_b1_b2;
+  arma::mat T_h1_h2;
 
-  arma::vec p_r1_r2;
-  arma::vec R_r1_r2;
+  arma::mat T_b_b1;
+  arma::mat T_b_b2;
+
+  arma::mat T_b1_h1_0;
+  arma::mat T_b2_h2_0;
 
   double Ts;
 

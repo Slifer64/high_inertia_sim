@@ -82,13 +82,32 @@ arma::vec quatlogDot2rotVel(const arma::vec &Qlog_dot, const arma::vec &Q)
 
 // ==================================================================
 
-Ur_Wrapper::Ur_Wrapper()
+Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2)
 {
+  T_h1_h2 = T_lh_rh;
+
+  arma::vec p = {0.25, -0.6, 0.34}; // h1 position w.r.t. left robot
+  arma::mat R = {{1, 0, 0}, {0, -1, 0}, {0, 0, -1}}; // h1 orientation w.r.t. left robot
+
+  arma::mat T_b1_h1 = arma::mat().eye(4,4);
+  T_b1_h1_0.submat(0,0,2,3) = arma::join_vert(R, p);
+
+  arma::mat T_b2_h2 = arma::inv(T_b1_b2) * T_b1_h1 * T_h1_h2;
+
+  T_b_b1 = T_b_h1 * arma::inv(T_b1_h1);
+  T_b_b2 = T_b_h2 * arma::inv(T_b2_h2);
+
+  T_b1_h1_0 = T_b1_h1;
+  T_b2_h2_0 = T_b2_h2;
+
   Ts = 0.002;
   Fext_prev = arma::vec().zeros(6);
 
   R_.resize(2);
   R_[0] = R_[1] = arma::mat().eye(4,4);
+
+  T_b1_b2 = arma::mat().eye(4,4);
+  T_b1_b2(3,0) = 1.1;
 
   ros::NodeHandle nh("~");
   std::string robot_desc;
@@ -99,71 +118,50 @@ Ur_Wrapper::Ur_Wrapper()
   if (!nh.getParam("Fext_deadzone",temp)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"Fext_deadzone\".");
   Fext_deadzone = temp;
 
+  std::vector<std::string> host_ip(2);
+  std::vector<std::string> robot_ip(2);
+  std::vector<int> reverse_port(2);
 
-  std::string left_robot_host_ip;
-  std::string left_robot_robot_ip;
-  int left_robot_reverse_port;
+  if (!nh.getParam("left_robot_host_ip",host_ip[0])) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"left_robot_host_ip\".");
+  if (!nh.getParam("left_robot_robot_ip",robot_ip[0])) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"left_robot_robot_ip\".");
+  if (!nh.getParam("left_robot_reverse_port",reverse_port[0])) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"left_robot_reverse_port\".");
 
-  if (!nh.getParam("left_robot_host_ip",left_robot_host_ip)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"left_robot_host_ip\".");
-  if (!nh.getParam("left_robot_robot_ip",left_robot_robot_ip)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"left_robot_robot_ip\".");
-  if (!nh.getParam("left_robot_reverse_port",left_robot_reverse_port)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"left_robot_reverse_port\".");
+  if (!nh.getParam("right_robot_host_ip",host_ip[1])) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"right_robot_host_ip\".");
+  if (!nh.getParam("right_robot_robot_ip",robot_ip[1])) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"right_robot_robot_ip\".");
+  if (!nh.getParam("right_robot_reverse_port",reverse_port[1])) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"right_robot_reverse_port\".");
 
-  // ------------------------------------
-  std::string right_robot_host_ip;
-  std::string right_robot_robot_ip;
-  int right_robot_reverse_port;
+  PRINT_INFO_MSG("left_robot: host_ip: " + host_ip[0] + "\n");
+  PRINT_INFO_MSG("left_robot: robot_ip: " + robot_ip[0] + "\n");
 
-  if (!nh.getParam("right_robot_host_ip",right_robot_host_ip)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"right_robot_host_ip\".");
-  if (!nh.getParam("right_robot_robot_ip",right_robot_robot_ip)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"right_robot_robot_ip\".");
-  if (!nh.getParam("right_robot_reverse_port",right_robot_reverse_port)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"right_robot_reverse_port\".");
-
-  std::string base_link = "base_link";
-  std::string tool_link = "tool_link";
-  std::vector<std::string> robot_ip = {left_robot_robot_ip, right_robot_robot_ip}; // {"10.0.1.1", "10.0.0.1"};
-  std::vector<std::string> host_ip = {left_robot_host_ip, right_robot_host_ip}; // {"10.0.1.3", "10.0.0.3"};
-  std::vector<int> reverse_port = {left_robot_reverse_port, right_robot_reverse_port}; // {8081, 8080};
-
-
-  PRINT_INFO_MSG("left_robot_robot_ip: " + left_robot_robot_ip + "\n");
-  PRINT_INFO_MSG("left_robot_host_ip: " + left_robot_host_ip + "\n");
-
-  PRINT_INFO_MSG("right_robot_robot_ip: " + right_robot_robot_ip + "\n");
-  PRINT_INFO_MSG("right_robot_host_ip: " + right_robot_host_ip + "\n");
+  PRINT_INFO_MSG("right_robot: host_ip: " + host_ip[1] + "\n");
+  PRINT_INFO_MSG("right_robot: robot_ip: " + robot_ip[1] + "\n");
 
   // Initialize generic robot with the kuka-lwr model
   std::cerr << "=======> Creating ur-robot wrapper...\n";
 
-  robot.resize(2);
   for (int i=0; i<2; i++)
-    robot[i].reset(new ur_::Robot(robot_desc, base_link, tool_link, host_ip[i], robot_ip[i], reverse_port[i]));
+    robot[i].reset(new ur_::Robot(robot_desc, "base_link", "tool_link", host_ip[i], robot_ip[i], reverse_port[i]));
 
   std::cerr << "=======> ur-robot wrapper created successfully!\n";
 
   moveToStartPose();
   biasFTSensors();
-
-  //
-  // N_JOINTS = robot->getNumJoints();
-  //
-  // Ts = robot->getCtrlCycle();
-  //
-  // mode.set(rw_::STOPPED);
-  // cmd_mode.set(rw_::IDLE);
-  // jpos_cmd.set(robot->getJointsPosition());
-  //
-  // run_ = true;
-  // std::thread robot_ctrl_thread = std::thread(&Ur_Wrapper::commandThread,this);
-  // int err_code = thr_::setThreadPriority(robot_ctrl_thread, SCHED_FIFO, 99);
-  // if (err_code) PRINT_WARNING_MSG(Ur_Wrapper_fun_ + "Failed to set thread priority! Reason:\n" + thr_::setThreadPriorErrMsg(err_code) + "\n", std::cerr);
-  // else PRINT_INFO_MSG(Ur_Wrapper_fun_ + "Set thread priority successfully!\n", std::cerr);
-  // robot_ctrl_thread.detach();
-  //
-  // mode_change.wait(); // wait for mode to be set
 }
 
 Ur_Wrapper::~Ur_Wrapper()
 {
   // run_ = false;
+}
+
+void Ur_Wrapper::setVelocity(const arma::vec &V)
+{
+
+}
+
+void Ur_Wrapper::waitNextCycle()
+{
+  robot[0]->update();
+  robot[1]->update();
 }
 
 void Ur_Wrapper::setCartVelCtrl()
@@ -226,11 +224,20 @@ void Ur_Wrapper::moveToStartPose()
   for (int i=0; i<2; i++) thr[i] = std::thread(&Ur_Wrapper::setJointsTrajectory, this, qT_mat.col(i), robot[i].get());
   for (int i=0; i<2; i++) thr[i].join();
 
+  arma::vec p = {0.25, -0.6, 0.34};
   arma::mat R = {{1, 0, 0}, {0, -1, 0}, {0, 0, -1}};
   arma::mat q = math_::rotm2quat(R);
+
+  arma::vec p_b1_h1 = T_b1_h1_0.submat(0,3,2,3);
+  arma::mat Q_b1_h1 = math_::rotm2quat(T_b1_h1_0.submat(0,0,2,2));
+
+  arma::mat T_b2_h2_0 = arma::inv(T_b1_b2) * T_b1_h1_0 * T_h1_h2;
+  arma::vec p_b2_h2 = T_b2_h2_0.submat(0,3,2,3);
+  arma::mat Q_b2_h2 = math_::rotm2quat(T_b2_h2_0.submat(0,0,2,2));
+
   arma::mat poseT_mat(7,2);
-  poseT_mat.col(0) = arma::vec({0.25, -0.6, 0.34, q(0), q(1), q(2), q(3)});
-  poseT_mat.col(1) = arma::vec({-0.25, -0.6, 0.34, q(0), q(1), q(2), q(3)});
+  poseT_mat.col(0) = arma::join_vert(p_b1_h1, Q_b1_h1);
+  poseT_mat.col(1) = arma::join_vert(p_b2_h2, Q_b2_h2);
 
   PRINT_INFO_MSG("Moving with Cartesian trajectory...\n");
   // move with Cartesian trajectory to desired pose

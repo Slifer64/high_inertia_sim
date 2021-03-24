@@ -29,6 +29,14 @@ struct RPoint
     Q = math_::rotm2quat(R);
   }
 
+  arma::mat getTransformFromBase() const
+  {
+    arma::mat T = arma::mat().eye(4,4);
+    T.submat(0,0,2,2) = R;
+    T.submat(0,3,2,3) = p;
+    return T;
+  }
+
   arma::vec p; // position
   arma::mat R; // rotation matrix
   arma::vec Q; // orientation as unit quat
@@ -64,12 +72,18 @@ public:
   void setLHandleWrenchReadFun(std::function<arma::vec()> get_wrench_fun) { get_lh_wrench_ = get_wrench_fun; }
   void setRHandleWrenchReadFun(std::function<arma::vec()> get_wrench_fun) { get_rh_wrench_ = get_wrench_fun; }
 
+  arma::mat get_transform_lh_rh() const { arma::inv(lh_.getTransformFromBase()) * rh_.getTransformFromBase(); }
+
 private:
 
   std::shared_ptr<Ur_Wrapper> ur_wrap;
 
   std::function<arma::vec()> get_lh_wrench_;
   std::function<arma::vec()> get_rh_wrench_;
+
+  std::function<void(arma::vec)> send_feedback;
+
+  std::function<void()> wait_next_cycle;
 
   arma::mat getBaseEeTransform()
   {
