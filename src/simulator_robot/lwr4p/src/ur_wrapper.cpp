@@ -229,8 +229,8 @@ void Ur_Wrapper::moveToStartPose()
   arma::mat R = {{1, 0, 0}, {0, -1, 0}, {0, 0, -1}};
   arma::mat q = math_::rotm2quat(R);
   arma::mat poseT_mat(7,2);
-  poseT_mat.col(0) = arma::vec({0.36, -0.6, 0.34, q(0), q(1), q(2), q(3)});
-  poseT_mat.col(1) = arma::vec({-0.36, -0.6, 0.34, q(0), q(1), q(2), q(3)});
+  poseT_mat.col(0) = arma::vec({0.25, -0.6, 0.34, q(0), q(1), q(2), q(3)});
+  poseT_mat.col(1) = arma::vec({-0.25, -0.6, 0.34, q(0), q(1), q(2), q(3)});
 
   PRINT_INFO_MSG("Moving with Cartesian trajectory...\n");
   // move with Cartesian trajectory to desired pose

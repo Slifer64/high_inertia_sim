@@ -29,7 +29,7 @@
           left_robot_reverse_port: 8081
 
           right_robot_host_ip: "10.0.0.3" # "127.0.0.1" #
-          right_robot_robot_ip: "10.0.0.1" # "127.0.0.1" # 
+          right_robot_robot_ip: "10.0.0.1" # "127.0.0.1" #
           right_robot_reverse_port: 8080
 
 
@@ -56,7 +56,7 @@
           use_gui: false
           read_wrench_from_gui: false
 
-          use_ur_robot: true
+          use_ur_robot: false
 
           ur_robot1_q0: [1.93, -1.05, 1.3, -1.85, -1.56, -2.78] # left robot
           ur_robot2_q0: [-1.93, -2.09, -1.3, -1.31, 1.6, -3.49] # right robot
