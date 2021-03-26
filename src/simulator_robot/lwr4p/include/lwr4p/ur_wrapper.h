@@ -40,6 +40,12 @@ public:
 
 private:
 
+  void throwError(const std::string &msg);
+
+  double SINGULARITY_THRES;
+  double VEL_THRES;
+  double ROT_VEL_THRES;
+
   std::vector<arma::vec> pose, Vel;
 
   arma::mat T_b1_b2;

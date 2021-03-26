@@ -515,6 +515,17 @@ void UrDriver::freedrive_mode()
 	if (n_bytes != len) throw std::runtime_error("Error: sent bytes=" + std::to_string(n_bytes) + ", bytes to send=" + std::to_string(len) + "\n");
 }
 
+void UrDriver::idle_mode()
+{
+	const int len = 4;
+	char buff[len];
+	writeInt(buff, IDLE_MODE);
+
+	int n_bytes = ur_::com_::write(new_sockfd_, buff, len, true);
+	if (n_bytes != len) throw std::runtime_error("Error: sent bytes=" + std::to_string(n_bytes) + ", bytes to send=" + std::to_string(len) + "\n");
+}
+
+
 void UrDriver::biasFtSensor()
 {
 	const int len = 4;

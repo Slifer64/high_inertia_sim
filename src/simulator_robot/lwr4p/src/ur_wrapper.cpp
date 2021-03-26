@@ -131,6 +131,10 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
   if (!nh.getParam("Fext_deadzone",temp)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"Fext_deadzone\".");
   Fext_deadzone = temp;
 
+  if (!nh.getParam("SINGULARITY_THRES",SINGULARITY_THRES)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"SINGULARITY_THRES\".");
+  if (!nh.getParam("VEL_THRES",VEL_THRES)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"VEL_THRES\".");
+  if (!nh.getParam("ROT_VEL_THRES",ROT_VEL_THRES)) throw std::ios_base::failure(Ur_Wrapper_fun_ + "Failed to read parameter \"ROT_VEL_THRES\".");
+
   std::vector<std::string> host_ip(2);
   std::vector<std::string> robot_ip(2);
   std::vector<int> reverse_port(2);
@@ -182,15 +186,53 @@ Ur_Wrapper::~Ur_Wrapper()
   // run_ = false;
 }
 
+
+void Ur_Wrapper::throwError(const std::string &msg)
+{
+  robot[0]->setJointsVelocity(arma::vec().zeros(6));
+  robot[1]->setJointsVelocity(arma::vec().zeros(6));
+  PRINT_ERROR_MSG(msg);
+  throw std::runtime_error(msg);
+}
+
 void Ur_Wrapper::setVelocity(const arma::vec &V)
 {
+  for (int i=0; i<2; i++)
+  {
+      arma::mat J = robot[i]->robot_urdf->getJacobian(robot[i]->getJointsPosition());
+      if (arma::rank(J, SINGULARITY_THRES) < 6)
+      {
+        robot[0]->setJointsVelocity(arma::vec().zeros(6));
+        robot[1]->setJointsVelocity(arma::vec().zeros(6));
+        throwError("Robot " + std::to_string(i+1) + " is close to singular pose!\n");
+      }
+  }
+
   arma::vec V1 = V.subvec(0,5);
   V1.subvec(0,2) = R_b1_b*V1.subvec(0,2);
   V1.subvec(3,5) = R_b1_b*V1.subvec(3,5);
 
+  if (arma::norm(V1.subvec(0,2)) > VEL_THRES)
+    throwError("Robot 1: Linear velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(0,2))) + "\n");
+  if (arma::norm(V1.subvec(3,5)) > ROT_VEL_THRES)
+    throwError("Robot 1: Angular velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(3,5))) + "\n");
+  if (pose[0](1) < -0.9)
+    throwError("Robot 1: Y-pos limit exceeded!\n");
+  if (pose[0](2) < 0.15)
+    throwError("Robot 1: Z-pos limit exceeded!\n");
+
   arma::vec V2 = V.subvec(6,11);
   V2.subvec(0,2) = R_b2_b*V2.subvec(0,2);
   V2.subvec(3,5) = R_b2_b*V2.subvec(3,5);
+
+  if (arma::norm(V2.subvec(0,2)) > VEL_THRES)
+    throwError("Robot 2: Linear velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(0,2))) + "\n");
+  if (arma::norm(V2.subvec(3,5)) > ROT_VEL_THRES)
+    throwError("Robot 2: Angular velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(3,5))) + "\n");
+  if (pose[1](1) < -0.9)
+    throwError("Robot 2: Y-pos limit exceeded!\n");
+  if (pose[1](2) < 0.15)
+    throwError("Robot 2: Z-pos limit exceeded!\n");
 
   // robot[0]->setTaskVelocity(V1);
   // robot[1]->setTaskVelocity(V2);

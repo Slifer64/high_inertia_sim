@@ -50,8 +50,9 @@ enum State
 	CART_POS_CTRL = 3,
 	CART_VEL_CTRL = 4,
   FREEDRIVE = 5,
-	BIAS_FT_SENSOR = 6,
-	TERMINATE = 7,
+  IDLE_MODE = 6,
+	BIAS_FT_SENSOR = 7,
+	TERMINATE = 8,
 };
 
 public:
@@ -106,6 +107,8 @@ public:
   { writeCommand(CART_VEL_CTRL, task_vel, 0, a); }
 
   void freedrive_mode();
+
+  void idle_mode();
 
   void biasFtSensor();
 

@@ -71,7 +71,8 @@ void Robot::setNormalMode()
 {
   if (this->getMode() != ur_::Mode::PROTECTIVE_STOP)
   {
-    ur_driver->setJointsVelocity(arma::vec().zeros(getNumJoints()), 10);
+    ur_driver->idle_mode();
+    //ur_driver->setJointsVelocity(arma::vec().zeros(getNumJoints()), 10);
   }
     //command_mode("end_freedrive_mode()\n");
 }
