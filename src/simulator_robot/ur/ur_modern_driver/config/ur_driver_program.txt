@@ -13,13 +13,11 @@ def driverProg():
 	ip_addr = <HOST_IP> # "10.0.0.2"
 	reverse_port_ = <REVERSE_PORT> # 8080
 	sock_fd_ = "socket_1"
-	sock_read_timeout = 2 # seconds
+	sock_read_timeout = 0.02 # seconds
 
-	global MAX_NO_CMD_COUNT = 2
+	global MAX_NO_CMD_COUNT = 4
 	global NO_CMD_COUNT = 0
 	global RECEIVED_CMD = False
-
-	global SERVOJ_STATE_MSG = ""
 
 	global GLOBAL_MSG = ""
 
@@ -38,11 +36,13 @@ def driverProg():
 
 	# ========  Initialize  =========
 
-	global servoj_state = UNASSIGNED_STATE
-	global cmd_state = UNASSIGNED_STATE
+	global servoj_state = IDLE_MODE
+	global cmd_state = IDLE_MODE
 	global cmd_arg1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 	global cmd_arg2 = 0.0
 	global cmd_arg3 = 0.0
+
+	global SERVOJ_STATE_MSG = "IDLE_MODE"
 
 	# ========  Function: Set commanded values  ==========
 
@@ -103,8 +103,6 @@ def driverProg():
 	thread servoThread():
 
 		freedrive_on = False
-
-		servoj_state = UNASSIGNED_STATE
 
 		while (True):
 
@@ -197,7 +195,7 @@ def driverProg():
 
 	while keepalive :
 
-		params_ = socket_read_binary_integer(30, sock_fd_, sock_read_timeout)
+		params_ = socket_read_binary_integer(9, sock_fd_, sock_read_timeout)
 		#params_ = socket_read_ascii_float(9, sock_fd_, sock_read_timeout)
 		if (params_[0] > 0):
 

@@ -165,7 +165,12 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
   PRINT_INFO_MSG("=======> ur-robot wrapper created successfully!\n");
 
   moveToStartPose();
+
+  robot[0]->setNormalMode();
+  robot[1]->setNormalMode();
+
   biasFTSensors();
+  PRINT_INFO_MSG("Bias F/T sensors DONE!\n");
 
   pose.resize(2);
   Vel.resize(2);
@@ -216,7 +221,7 @@ void Ur_Wrapper::setVelocity(const arma::vec &V)
     throwError("Robot 1: Linear velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(0,2))) + "\n");
   if (arma::norm(V1.subvec(3,5)) > ROT_VEL_THRES)
     throwError("Robot 1: Angular velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(3,5))) + "\n");
-  if (pose[0](1) < -0.9)
+  if (pose[0](1) < -0.8)
     throwError("Robot 1: Y-pos limit exceeded!\n");
   if (pose[0](2) < 0.15)
     throwError("Robot 1: Z-pos limit exceeded!\n");
@@ -229,7 +234,7 @@ void Ur_Wrapper::setVelocity(const arma::vec &V)
     throwError("Robot 2: Linear velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(0,2))) + "\n");
   if (arma::norm(V2.subvec(3,5)) > ROT_VEL_THRES)
     throwError("Robot 2: Angular velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(3,5))) + "\n");
-  if (pose[1](1) < -0.9)
+  if (pose[1](1) < -0.8)
     throwError("Robot 2: Y-pos limit exceeded!\n");
   if (pose[1](2) < 0.15)
     throwError("Robot 2: Z-pos limit exceeded!\n");
@@ -369,6 +374,7 @@ void Ur_Wrapper::setJointsTrajectory(const arma::vec &qT, ur_::Robot *robot_)
 
   robot_->setTaskVelocity(arma::vec().zeros(6));
   robot_->update();
+  robot_->setNormalMode();
 
   double q_err = arma::norm(robot_->getJointsPosition()-qT);
   if (q_err > 5e-4)
@@ -436,6 +442,7 @@ void Ur_Wrapper::setCartTrajectory(const arma::vec &poseT, ur_::Robot *robot_)
 
   robot_->setTaskVelocity(arma::vec().zeros(6));
   robot_->update();
+  robot_->setNormalMode();
 
   arma::vec p_robot = robot_->getTaskPosition();
   arma::vec Q_robot = robot_->getTaskQuat();

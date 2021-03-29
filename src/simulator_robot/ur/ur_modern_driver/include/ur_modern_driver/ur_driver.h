@@ -110,6 +110,8 @@ public:
 
   void idle_mode();
 
+  void terminate();
+
   void biasFtSensor();
 
 private:

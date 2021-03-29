@@ -1,0 +1,11 @@
+- With such slow movements, no significant perceptible inertial forces emerge...
+
+- With "mo" very small, the noise from the sensors makes the system behave badly!
+  This can be alleviated by increasing the total inertia, via "M"
+
+- t_sim = 0.002 and t_ctrl = 0.008 ms produces no problems
+
+
+So ultimately, we just want to make an admittance, where the noise from the F/T sensors is properly handled...
+
+ 

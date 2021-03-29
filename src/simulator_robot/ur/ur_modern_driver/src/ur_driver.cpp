@@ -66,6 +66,7 @@ REVERSE_PORT_(reverse_port), host_ip_(host_ip), robot_ip_(robot_ip)
 
 UrDriver::~UrDriver()
 {
+  PRINT_WARNING_MSG("\n\n[UrDriver::~UrDriver]: Destructing!!!\n\n");
 	halt();
   delete rt_interface_;
   delete sec_interface_;
@@ -116,14 +117,8 @@ void UrDriver::startReverseCom()
 
 void UrDriver::stopReverseCom()
 {
-	if (reverse_connected_)
-	{
-		rt_interface_->addCommandToQueue("stopj(10)\n");
-		reverse_connected_ = false;
-    if (read_state_thr.joinable()) read_state_thr.join();
-		close(new_sockfd_);
-    close(incoming_sockfd_);
-	}
+  keep_alive_ = false;
+  if (read_state_thr.joinable()) read_state_thr.join();
 }
 
 void UrDriver::readRobotStateThread()
@@ -183,7 +178,9 @@ void UrDriver::readRobotStateThread()
   		int k = 0;
     #endif
 
-		while (reverse_connected_)
+    PRINT_INFO_MSG("keep_alive_ = " + std::to_string(keep_alive_) + "\n");
+
+		while (keep_alive_ && reverse_connected_)
 		{
 			timer.start();
 
@@ -217,7 +214,7 @@ void UrDriver::readRobotStateThread()
 				reverse_connected_ = false;
         update_sem.notify(); // notify in all cases to avoid dead locks...
 
-        reconnect_fun_();
+        if (keep_alive_) reconnect_fun_();
 			}
 
 
@@ -225,6 +222,16 @@ void UrDriver::readRobotStateThread()
   			times_vec(k++) = timer.elapsedMicroSec();
       #endif
 		}
+
+    if (reverse_connected_)
+  	{
+      terminate();
+  		//rt_interface_->addCommandToQueue("stopj(10)\n");
+  		reverse_connected_ = false;
+  		close(new_sockfd_);
+      close(incoming_sockfd_);
+      std::this_thread::sleep_for(std::chrono::milliseconds(8));
+  	}
 
     #ifdef LOG_TIMES
   		times_vec = times_vec.subvec(6,k-7); // discard some initial/final values which are noisy
@@ -339,7 +346,6 @@ bool UrDriver::start()
 void UrDriver::halt()
 {
   stopReverseCom();
-  keep_alive_ = false;
 	sec_interface_->halt();
 	rt_interface_->halt();
   if (rt_read_thread_.joinable()) rt_read_thread_.join();
@@ -507,6 +513,8 @@ void UrDriver::writeCommand(int state, const arma::vec &cmd_, double vel, double
 
 void UrDriver::freedrive_mode()
 {
+  exit(0);
+  
 	const int len = 4;
 	char buff[len];
 	writeInt(buff, FREEDRIVE);
@@ -525,6 +533,15 @@ void UrDriver::idle_mode()
 	if (n_bytes != len) throw std::runtime_error("Error: sent bytes=" + std::to_string(n_bytes) + ", bytes to send=" + std::to_string(len) + "\n");
 }
 
+void UrDriver::terminate()
+{
+	const int len = 4;
+	char buff[len];
+	writeInt(buff, TERMINATE);
+
+	int n_bytes = ur_::com_::write(new_sockfd_, buff, len, true);
+	if (n_bytes != len) throw std::runtime_error("Error: sent bytes=" + std::to_string(n_bytes) + ", bytes to send=" + std::to_string(len) + "\n");
+}
 
 void UrDriver::biasFtSensor()
 {

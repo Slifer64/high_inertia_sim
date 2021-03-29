@@ -7,6 +7,8 @@
 
 #include <ros/ros.h>
 
+// #define CHECK_CTRL_CYCLE_DELAYS
+
 namespace lwr4p_
 {
 
@@ -106,7 +108,6 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
     wait_next_cycle = [this](){ this->ur_wrap->waitNextCycle(); };
   }
-
 }
 
 RobotObjSim::~RobotObjSim()
@@ -169,13 +170,17 @@ void RobotObjSim::simulationLoop()
 
   wait_next_cycle();
 
-  // Timer timer;
+  #ifdef CHECK_CTRL_CYCLE_DELAYS
+    Timer timer;
+  #endif
 
   while (is_running)
   {
     count++;
 
-    // timer.start();
+    #ifdef CHECK_CTRL_CYCLE_DELAYS
+      timer.start();
+    #endif
 
     // solve dynamics
     arma::vec V = arma::join_vert(dp, vRot);
@@ -213,13 +218,13 @@ void RobotObjSim::simulationLoop()
     F_h1 = get_lh_wrench_(); //F_lh;
     F_h2 = get_rh_wrench_(); //F_rh;
 
-    if (count == 100)
+    if (count == 200)
     {
       count = 0;
       std::cerr << "=========================\n";
-      printf("F_h1 :  %.3f  ,  %.3f  ,  %.3f  |  %.3f  ,  %.3f  ,  %.3f\n", F_h1(0),F_h1(1),F_h1(2),F_h1(3),F_h1(4),F_h1(5));
-      printf("F_h2 :  %.3f  ,  %.3f  ,  %.3f  |  %.3f  ,  %.3f  ,  %.3f\n", F_h2(0),F_h2(1),F_h2(2),F_h2(3),F_h2(4),F_h2(5));
-      printf("Vel_r:  %.3f  ,  %.3f  ,  %.3f  |  %.3f  ,  %.3f  ,  %.3f\n", V(0),V(1),V(2),V(3),V(4),V(5));
+      printf("F_h1 :  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", F_h1(0),F_h1(1),F_h1(2),F_h1(3),F_h1(4),F_h1(5));
+      printf("F_h2 :  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", F_h2(0),F_h2(1),F_h2(2),F_h2(3),F_h2(4),F_h2(5));
+      printf("Vel_r:  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", V(0),V(1),V(2),V(3),V(4),V(5));
     }
 
     arma::mat Mr;
@@ -279,8 +284,10 @@ void RobotObjSim::simulationLoop()
     // clock sync
     wait_next_cycle();
     // check delays
-    // double tc = timer.elapsedNanoSec();
-    // std::cout << "tc = " << tc*1e-6 << " ms\n";
+    #ifdef CHECK_CTRL_CYCLE_DELAYS
+      double tc = timer.elapsedNanoSec();
+      std::cout << "tc = " << tc*1e-6 << " ms\n";
+    #endif
     // if (tc > 1.02*cycle_ns) PRINT_WARNING_MSG("Control cycle exceeded! cycle: " + std::to_string(tc*1e-6) + " ms\n");
 
     sim_sem.notify();

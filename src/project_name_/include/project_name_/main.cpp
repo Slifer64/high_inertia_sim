@@ -9,6 +9,8 @@
 #include <thread_lib/thread_lib.h>
 #include <io_lib/print_utils.h>
 
+#include <csignal>
+
 #include <project_name_/gui/main_gui.h>
 
 using namespace as64_;
@@ -16,6 +18,11 @@ using namespace as64_;
 class MainProgram
 {
 public:
+
+  ~MainProgram()
+  {
+    PRINT_INFO_MSG("[MainProgram::~MainProgram]: Destructor called!\n");
+  }
 
   // QMainWindow *createMainWindow()
   // {
@@ -108,9 +115,16 @@ public:
 // ========================================================
 // ========================================================
 
+void terminateProgram(int )
+{
+  exit(0);
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "$project_name$");
+
+  signal(SIGINT, terminateProgram);
 
   MainProgram main_prog;
   main_prog.run();
