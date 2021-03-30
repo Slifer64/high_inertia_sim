@@ -7,6 +7,9 @@
 #include <exception>
 
 #include <ros/ros.h>
+#include <ros/package.h>
+
+#include <io_lib/xml_parser.h>
 
 // #define CHECK_CTRL_CYCLE_DELAYS
 
@@ -34,19 +37,19 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
   g_ = arma::vec({0, 0, -9.81});
 
-  std::vector<double> M_vec;
-  if (!nh.getParam("M",M_vec)) throw std::runtime_error("Failed to load param \"M\"...\n");
-  M = arma::diagmat(arma::vec(M_vec));
-  std::vector<double> D_vec;
-  if (!nh.getParam("D",D_vec)) throw std::runtime_error("Failed to load param \"D\"...\n");
-  D = arma::diagmat(arma::vec(D_vec));
-
-  if (!nh.getParam("mo",mo)) throw std::runtime_error("Failed to load param \"mo\"...\n");
-  std::vector<double> Jo_vec;
-  if (!nh.getParam("Jo",Jo_vec)) throw std::runtime_error("Failed to load param \"Jo\"...\n");
-  Jo_o = arma::diagmat(arma::vec(Jo_vec));
-  Mo_o = arma::diagmat(arma::vec({mo, mo, mo, 0,0,0}));
-  Mo_o.submat(3,3,5,5) = Jo_o;
+  // std::vector<double> M_vec;
+  // if (!nh.getParam("M",M_vec)) throw std::runtime_error("Failed to load param \"M\"...\n");
+  // M = arma::diagmat(arma::vec(M_vec));
+  // std::vector<double> D_vec;
+  // if (!nh.getParam("D",D_vec)) throw std::runtime_error("Failed to load param \"D\"...\n");
+  // D = arma::diagmat(arma::vec(D_vec));
+  //
+  // if (!nh.getParam("mo",mo)) throw std::runtime_error("Failed to load param \"mo\"...\n");
+  // std::vector<double> Jo_vec;
+  // if (!nh.getParam("Jo",Jo_vec)) throw std::runtime_error("Failed to load param \"Jo\"...\n");
+  // Jo_o = arma::diagmat(arma::vec(Jo_vec));
+  // Mo_o = arma::diagmat(arma::vec({mo, mo, mo, 0,0,0}));
+  // Mo_o.submat(3,3,5,5) = Jo_o;
 
   if (!nh.getParam("Ts",Ts)) throw std::runtime_error("Failed to load param \"Ts\"...\n");
   if (!nh.getParam("ctrl_cycle",ctrl_cycle)) throw std::runtime_error("Failed to load param \"ctrl_cycle\"...\n");
@@ -135,6 +138,8 @@ void RobotObjSim::gotoStartPose()
 
 void RobotObjSim::startSim()
 {
+  if (!loadSimParams()) return;
+
   std::thread sim_thread = std::thread(&RobotObjSim::simulationLoop, this);
   int err_code = thr_::setThreadPriority(sim_thread, SCHED_FIFO, 99);
   if (err_code) std::cerr << "[lwr4p_::RobotObjSim::Robot]: Failed to set thread priority! Reason:\n" << thr_::setThreadPriorErrMsg(err_code) << "\n";
@@ -199,7 +204,7 @@ void RobotObjSim::simulationLoop()
     Timer timer;
   #endif
 
-  arma::mat D2 = D;
+  arma::mat D2 = D_max;
 
   run_sim_ = true;
 
@@ -207,6 +212,8 @@ void RobotObjSim::simulationLoop()
   if (log_on) clearLogData();
 
   double t = 0;
+
+  arma::mat D_plus = D_max - D_min;
 
   while (run_sim_)
   {
@@ -284,9 +291,9 @@ void RobotObjSim::simulationLoop()
       double Fp_norm = arma::norm(F_rh1.subvec(0,2) + F_rh2.subvec(0,2));
       double Fo_norm = arma::norm(F_rh1.subvec(3,5) + F_rh2.subvec(3,5));
 
-      D2 = D;
-      D2.submat(0,0,2,2) = (30 + 320*exp(-15*0*arma::norm(V.subvec(0,2)) -1*Fp_norm ) ) * arma::eye(3,3);
-      D2.submat(3,3,5,5) = (0.2 + 9.8*exp(-15*0*arma::norm(V.subvec(3,5)) -1*Fo_norm ) ) * arma::eye(3,3);
+      D2 = D_min;
+      D2.submat(0,0,2,2) += D_plus.submat(0,0,2,2)*exp(-a_Fp*Fp_norm);
+      D2.submat(3,3,5,5) += D_plus.submat(3,3,5,5)*exp(-a_Fo*Fo_norm);
       Cr = D2*V;
     }
 
@@ -392,6 +399,43 @@ void RobotObjSim::saveLogData(const std::string &filename)
   catch(std::exception &e)
   {
     PRINT_ERROR_MSG(RobotObjSim_fun_ + e.what() + "\n");
+  }
+}
+
+bool RobotObjSim::loadSimParams()
+{
+  try{
+    std::string filename = ros::package::getPath("project_name_") + "/config/sim_params.yaml";
+    io_::XmlParser parser(filename);
+
+    arma::rowvec Jo_vec, M_vec, D_min_vec, D_max_vec;
+
+    if (!parser.getParam("mo", mo)) throw std::runtime_error("Failed to read param \"mo\"...");
+    if (!parser.getParam("Jo", Jo_vec)) throw std::runtime_error("Failed to read param \"Jo\"...");
+
+    if (!parser.getParam("M", M_vec)) throw std::runtime_error("Failed to read param \"M\"...");
+    if (!parser.getParam("D_min", D_min_vec)) throw std::runtime_error("Failed to read param \"D_min\"...");
+    if (!parser.getParam("D_max", D_max_vec)) throw std::runtime_error("Failed to read param \"D_max\"...");
+
+    if (!parser.getParam("a_Fp", a_Fp)) throw std::runtime_error("Failed to read param \"a_Fp\"...");
+    if (!parser.getParam("a_Fo", a_Fo)) throw std::runtime_error("Failed to read param \"a_Fo\"...");
+
+    M = arma::diagmat(M_vec);
+    D_min = arma::diagmat(D_min_vec);
+    D_max = arma::diagmat(D_max_vec);
+
+    Jo_o = arma::diagmat(Jo_vec);
+    Mo_o = arma::diagmat(arma::vec({mo, mo, mo, 0,0,0}));
+    Mo_o.submat(3,3,5,5) = Jo_o;
+
+
+
+    return true;
+  }
+  catch(std::exception &e)
+  {
+    PRINT_ERROR_MSG(RobotObjSim_fun_ + e.what() + "\n");
+    return false;
   }
 }
 

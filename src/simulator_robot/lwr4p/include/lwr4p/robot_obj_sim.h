@@ -110,6 +110,8 @@ private:
 
   std::function<void()> wait_next_cycle;
 
+  bool loadSimParams();
+
   arma::mat getBaseEeTransform()
   {
     arma::mat T = arma::mat().eye(4,4);
@@ -179,9 +181,15 @@ private:
 
   int ctrl_cycle;
 
-  arma::mat M; // robot inertia matrix
-  arma::mat D; // robot damping
+  // arma::mat M; // robot inertia matrix
+  // arma::mat D; // robot damping
   arma::vec u; // input wrench
+
+  arma::mat M;
+  arma::mat D_min;
+  arma::mat D_max;
+  double a_Fp;
+  double a_Fo;
 
   arma::vec F_rh;
   arma::vec F_lh;
