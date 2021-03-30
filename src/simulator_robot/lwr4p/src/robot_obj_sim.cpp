@@ -174,6 +174,8 @@ void RobotObjSim::simulationLoop()
     Timer timer;
   #endif
 
+  arma::mat D2 = D;
+
   while (is_running)
   {
     count++;
@@ -225,6 +227,7 @@ void RobotObjSim::simulationLoop()
       printf("F_h1 :  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", F_h1(0),F_h1(1),F_h1(2),F_h1(3),F_h1(4),F_h1(5));
       printf("F_h2 :  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", F_h2(0),F_h2(1),F_h2(2),F_h2(3),F_h2(4),F_h2(5));
       printf("Vel_r:  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", V(0),V(1),V(2),V(3),V(4),V(5));
+      printf("Damp :  %6.3f  ,  %6.3f  ,  %6.3f  |  %6.3f  ,  %6.3f  ,  %6.3f\n", D2(0,0),D2(1,1),D2(2,2),D2(3,3),D2(4,4),D2(5,5));
     }
 
     arma::mat Mr;
@@ -242,7 +245,11 @@ void RobotObjSim::simulationLoop()
     else
     {
       Mr = M;
-      Cr = D*V;
+
+      // D2 = D;
+      // D2.submat(0,0,2,2) = D2.submat(0,0,2,2) + arma::eye(3,3)*20*exp(-15*arma::norm(V.subvec(0,2)));
+      // D2.submat(3,3,5,5) = D2.submat(3,3,5,5) + arma::eye(3,3)*1*exp(-15*arma::norm(V.subvec(3,5)));
+      Cr = D2*V;
     }
 
     arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + G_rh1*F_h1 + G_rh2*F_h2 ) , arma::solve_opts::likely_sympd );
