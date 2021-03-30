@@ -2,6 +2,7 @@
 
 #include <thread_lib/thread_lib.h>
 #include <io_lib/print_utils.h>
+#include <io_lib/file_io.h>
 
 #include <exception>
 
@@ -9,14 +10,21 @@
 
 // #define CHECK_CTRL_CYCLE_DELAYS
 
+using namespace as64_;
+
 namespace lwr4p_
 {
+
+#define RobotObjSim_fun_ std::string("[RobotObjSim::") + __func__ + "]: "
 
 RobotObjSim::RobotObjSim(std::string robot_desc_param)
 {
   ros::NodeHandle nh("~");
 
-  run_sim_ = true;
+  run_sim_ = false;
+  log_data_ = false;
+
+  log_cycle = 2;
 
   base_ee_chain.reset(new robo_::KinematicChain(robot_desc_param, "base_link", "ee_link"));
 
@@ -188,6 +196,11 @@ void RobotObjSim::simulationLoop()
 
   run_sim_ = true;
 
+  bool log_on = log_data_;
+  if (log_on) clearLogData();
+
+  double t = 0;
+
   while (run_sim_)
   {
     count++;
@@ -270,11 +283,14 @@ void RobotObjSim::simulationLoop()
       Cr = D2*V;
     }
 
+    u = get_ctrl_signal_();
+
     arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
 
     // numerical integration
+    t = t + Ts;
     p += dp*Ts;
     Q = math_::quatProd(math_::quatExp(vRot*Ts),Q);
     dp += ddp*Ts;
@@ -284,6 +300,18 @@ void RobotObjSim::simulationLoop()
     arma::vec V_h2 = twistMat(-r_rh2)*arma::join_vert(dp, vRot);
 
     send_feedback(arma::join_vert(V_h1, V_h2));
+
+    if (log_on)
+    {
+      log_Time = arma::join_horiz(log_Time, arma::vec({t}) );
+      log_Vh1 = arma::join_horiz(log_Vh1, V_h1 );
+      log_Vh2 = arma::join_horiz(log_Vh2, V_h2 );
+
+      log_Fh1 = arma::join_horiz(log_Fh1, F_h1 );
+      log_Fh2 = arma::join_horiz(log_Fh2, F_h2 );
+
+      log_Damp = arma::join_horiz(log_Damp, arma::diagvec(D2) );
+    }
 
     // update robot joints pos;
     // arma::mat J = base_ee_chain->getJacobian(getJointsPosition());
@@ -320,4 +348,40 @@ void RobotObjSim::simulationLoop()
   sim_stopped_sem.notify();
 }
 
+void RobotObjSim::clearLogData()
+{
+  log_Time.clear();
+  log_Vh1.clear();
+  log_Vh2.clear();
+  log_Fh1.clear();
+  log_Fh2.clear();
+  log_Damp.clear();
 }
+
+void RobotObjSim::saveLogData(const std::string &filename)
+{
+  if (log_Time.size() == 0)
+  {
+    PRINT_WARNING_MSG(RobotObjSim_fun_ +"The data are empty...\n");
+    return;
+  }
+  
+  try
+  {
+    io_::FileIO fid(filename, io_::FileIO::out|io_::FileIO::trunc);
+    fid.write("Time_data",log_Time);
+    fid.write("Vh1_data",log_Vh1);
+    fid.write("Vh2_data",log_Vh2);
+    fid.write("Fh1_data",log_Fh1);
+    fid.write("Fh2_data",log_Fh2);
+    fid.write("Damp_data",log_Damp);
+    fid.close();
+    PRINT_INFO_MSG(RobotObjSim_fun_ + "Logged data saved successfully!\n");
+  }
+  catch(std::exception &e)
+  {
+    PRINT_ERROR_MSG(RobotObjSim_fun_ + e.what() + "\n");
+  }
+}
+
+} // namespace lwr4p_

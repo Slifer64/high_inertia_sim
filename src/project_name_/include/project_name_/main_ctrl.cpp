@@ -11,6 +11,8 @@
 
 #include <csignal>
 
+#include <ros/package.h>
+
 #include <project_name_/main_ctrl.h>
 
 using namespace as64_;
@@ -18,6 +20,8 @@ using namespace as64_;
 MainController::MainController()
 {
   ros::NodeHandle nh("~");
+
+  default_data_path = ros::package::getPath("project_name_") + "/data/";
 
   std::string robot_desc;
   if (!nh.getParam("robot_obj_description",robot_desc)) throw std::runtime_error("Failed to load param \"robot_obj_description\"...");
@@ -84,25 +88,45 @@ void MainController::setIdleMode()
 
 void MainController::runSimulation()
 {
-  emit gui->modeChangedSignal("CART_VEL_CTRL");
+  robot->setCtrlSignalFun([this]()
+  {
+    arma::vec u = arma::vec().zeros(6,1);
+    arma::vec p_eo = robot->get_pos_ee_obj();
+    double mo = robot->getObjectMass();
+    arma::vec Fo_minus = {0, 0, mo*9.81, 0, 0, 0};
+    arma::mat R = robot->getTaskRotm();
+    u.subvec(0,2) = Fo_minus.subvec(0,2);
+    u.subvec(3,5) = arma::cross(R*p_eo, Fo_minus.subvec(0,2)) + Fo_minus.subvec(3,5);
+    //robot->setInputWrench(u);
+    return u;
+  });
 
   robot->startSim();
+  emit gui->modeChangedSignal("CART_VEL_CTRL");
 
-  arma::vec u = arma::vec().zeros(6,1);
-  arma::vec p_eo = robot->get_pos_ee_obj();
-  double mo = robot->getObjectMass();
-  arma::vec Fo_minus = {0, 0, mo*9.81, 0, 0, 0};
+}
 
-  while (ros::ok())
+void MainController::gotoStartPose()
+{
+  std::thread([this]()
   {
-    if (comp_load)
-    {
-      arma::mat R = robot->getTaskRotm();
-      u.subvec(0,2) = Fo_minus.subvec(0,2);
-      u.subvec(3,5) = arma::cross(R*p_eo, Fo_minus.subvec(0,2)) + Fo_minus.subvec(3,5);
-      robot->setInputWrench(u);
-    }
+    emit gui->modeChangedSignal("GOTO START");
+    this->robot->ur_wrap->moveToStartPose();
+    emit gui->modeChangedSignal("IDLE");
+  }).detach();
+}
 
-    robot->waitNextCycle();
-  }
+void MainController::biasFTSensors()
+{
+  robot->ur_wrap->biasFTSensors();
+}
+
+void MainController::saveLoggedData(const std::string &filename)
+{
+  robot->saveLogData(filename);
+}
+
+void MainController::setLogging(bool set)
+{
+  robot->log_data_ = set;
 }

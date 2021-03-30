@@ -30,6 +30,15 @@ public:
   void setIdleMode();
   void runSimulation();
 
+  void gotoStartPose();
+  void biasFTSensors();
+
+  void saveLoggedData(const std::string &filename);
+
+  void setLogging(bool set);
+
+  std::string default_data_path;
+
   bool gui_finished;
   MainWindow *gui;
 

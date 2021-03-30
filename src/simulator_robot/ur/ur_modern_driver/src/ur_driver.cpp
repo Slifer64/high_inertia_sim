@@ -513,8 +513,6 @@ void UrDriver::writeCommand(int state, const arma::vec &cmd_, double vel, double
 
 void UrDriver::freedrive_mode()
 {
-  exit(0);
-  
 	const int len = 4;
 	char buff[len];
 	writeInt(buff, FREEDRIVE);

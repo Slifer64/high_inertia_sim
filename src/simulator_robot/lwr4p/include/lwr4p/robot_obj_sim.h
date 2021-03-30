@@ -79,10 +79,30 @@ public:
   arma::mat get_transform_lh_rh() const { return arma::inv(lh_.getTransformFromBase()) * rh_.getTransformFromBase(); }
 
   std::shared_ptr<Ur_Wrapper> ur_wrap;
+
+  bool isSimRunning() const { return run_sim_; }
+
+  void setCtrlSignalFun(std::function<arma::vec()> ctrl_fun) { get_ctrl_signal_ = ctrl_fun; }
+
+  bool log_data_;
+  int log_cycle;
+
+  void clearLogData();
+  void saveLogData(const std::string &filename);
+
 private:
+
+  arma::rowvec log_Time;
+  arma::mat log_Vh1;
+  arma::mat log_Vh2;
+  arma::mat log_Fh1;
+  arma::mat log_Fh2;
+  arma::mat log_Damp;
 
   std::function<arma::vec()> get_lh_wrench_;
   std::function<arma::vec()> get_rh_wrench_;
+
+  std::function<arma::vec()> get_ctrl_signal_;
 
   std::function<void(arma::vec)> send_feedback;
 

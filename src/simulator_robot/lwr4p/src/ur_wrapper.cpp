@@ -164,13 +164,12 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
 
   PRINT_INFO_MSG("=======> ur-robot wrapper created successfully!\n");
 
-  moveToStartPose();
+  // moveToStartPose();
 
   robot[0]->setNormalMode();
   robot[1]->setNormalMode();
 
   biasFTSensors();
-  PRINT_INFO_MSG("Bias F/T sensors DONE!\n");
 
   pose.resize(2);
   Vel.resize(2);
@@ -279,6 +278,7 @@ void Ur_Wrapper::biasFTSensors()
 {
   robot[0]->biasFtSensor();
   robot[1]->biasFtSensor();
+  PRINT_INFO_MSG("Bias F/T sensors DONE!\n");
 }
 
 arma::vec Ur_Wrapper::getWrench(int robot_ind)
@@ -346,6 +346,8 @@ void Ur_Wrapper::moveToStartPose()
   for (int i=0; i<2; i++) thr[i].join();
 
   PRINT_INFO_MSG("DONE!\n");
+
+  setIdleMode();
 }
 
 void Ur_Wrapper::setJointsTrajectory(const arma::vec &qT, ur_::Robot *robot_)

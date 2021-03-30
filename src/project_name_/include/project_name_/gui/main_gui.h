@@ -40,11 +40,15 @@ signals:
   void closeSignal();
   void modeChangedSignal(const QString &mode_name);
 
+private slots:
+  void modeChangedSlot(const QString &mode_name);
+
 public:
 
   MainController *main_ctrl;
 
   QFrame *createModeFrame();
+  QFrame *createUtilsFrame();
 
   void createMenu();
 
@@ -52,6 +56,11 @@ public:
   QPushButton *freedrive_btn;
   QPushButton *idle_btn;
   QPushButton *run_sim_btn;
+
+  QPushButton *goto_start_pose_btn;
+  QPushButton *bias_ft_sensors_btn;
+  QCheckBox *log_data_ckbox;
+  QPushButton *save_log_data;
 
   QWidget *central_widget;
   QStatusBar *status_bar;

@@ -32,15 +32,67 @@ MainWindow::MainWindow(MainController *main_ctrl, QWidget *parent) : QMainWindow
 
   QHBoxLayout *main_layout = new QHBoxLayout(central_widget);
   main_layout->addWidget(createModeFrame());
-  // main_layout->addLayout(rh_layout);
+  main_layout->addWidget(createUtilsFrame());
 
   createMenu();
 
-  QObject::connect( this, &MainWindow::modeChangedSignal, this, [this](const QString &mode_name){ this->robot_mode_le->setText(mode_name); } );
+  QObject::connect( this, SIGNAL(modeChangedSignal(const QString &)), this, SLOT(modeChangedSlot(const QString &)) );
+  emit modeChangedSignal("IDLE");
 }
+
+
 
 MainWindow::~MainWindow()
 {}
+
+void MainWindow::modeChangedSlot(const QString &mode_name)
+{
+  robot_mode_le->setText(mode_name);
+
+  if (mode_name.compare("idle", Qt::CaseInsensitive)==0) robot_mode_le->setStyleSheet("color:rgb(255,160,52);");
+  else if (mode_name.compare("freedrive", Qt::CaseInsensitive)==0) robot_mode_le->setStyleSheet("color:rgb(0,200,0);");
+  else if (mode_name.compare("CART_VEL_CTRL", Qt::CaseInsensitive)==0) robot_mode_le->setStyleSheet("color:rgb(255,65,195);");
+  else if (mode_name.compare("GOTO START", Qt::CaseInsensitive)==0) robot_mode_le->setStyleSheet("color:rgb(170,85,0);");
+}
+
+QFrame *MainWindow::createUtilsFrame()
+{
+  goto_start_pose_btn = new QPushButton("goto start pose");
+  goto_start_pose_btn->setFont(font1);
+  QObject::connect( goto_start_pose_btn, &QPushButton::clicked, this, [this](){ this->main_ctrl->gotoStartPose(); } );
+
+  bias_ft_sensors_btn = new QPushButton("bias F/T sensors");
+  bias_ft_sensors_btn->setFont(font1);
+  QObject::connect( bias_ft_sensors_btn, &QPushButton::clicked, this, [this](){ this->main_ctrl->biasFTSensors(); } );
+
+  log_data_ckbox = new QCheckBox("enable data logging");
+  log_data_ckbox->setFont(font1);
+  QObject::connect( log_data_ckbox, &QCheckBox::stateChanged, this, [this]()
+  { this->main_ctrl->setLogging(log_data_ckbox->isChecked()); });
+
+  save_log_data = new QPushButton("save logged data");
+  save_log_data->setFont(font1);
+  QObject::connect( save_log_data, &QPushButton::clicked, this, [this]()
+  {
+    std::string filename = QFileDialog::getSaveFileName(this, tr("Save logged data"), this->main_ctrl->default_data_path.c_str(), "Binary files (*.bin)").toStdString();
+    if (filename.empty()) return;
+    this->main_ctrl->saveLoggedData(filename);
+  });
+
+  QVBoxLayout *utils_layout = new QVBoxLayout;
+  utils_layout->addWidget(goto_start_pose_btn);
+  utils_layout->addWidget(bias_ft_sensors_btn);
+  utils_layout->addWidget(log_data_ckbox);
+  utils_layout->addWidget(save_log_data);
+  utils_layout->addStretch(0);
+
+  QFrame *utils_frame = new QFrame;
+  utils_frame->setFrameStyle(QFrame::Box | QFrame::Raised);
+  utils_frame->setLineWidth(2);
+  utils_frame->setLayout(utils_layout);
+
+  return utils_frame;
+}
 
 QFrame *MainWindow::createModeFrame()
 {
@@ -53,12 +105,13 @@ QFrame *MainWindow::createModeFrame()
   robot_mode_le = new QLineEdit("");
   robot_mode_le->setAlignment(Qt::AlignCenter);
   robot_mode_le->setFont(font1);
-  robot_mode_le->setMinimumWidth(300);
+  robot_mode_le->setMinimumWidth(200);
   robot_mode_le->setReadOnly(true);
 
   QHBoxLayout *rm1_layout = new QHBoxLayout;
     rm1_layout->addWidget(robot_mode_lb);
     rm1_layout->addWidget(robot_mode_le);
+    rm1_layout->addStretch(0);
   robot_mode_layout->addLayout(rm1_layout);
 
   freedrive_btn = new QPushButton("Freedrive");
@@ -83,7 +136,7 @@ QFrame *MainWindow::createModeFrame()
 
   robot_mode_layout->addLayout(modes_btn_layout2);
 
-  QFrame *robot_mode_frame = new QFrame(central_widget);
+  QFrame *robot_mode_frame = new QFrame;
   robot_mode_frame->setFrameStyle(QFrame::Box | QFrame::Raised);
   robot_mode_frame->setLineWidth(2);
   robot_mode_frame->setLayout(robot_mode_layout);
