@@ -34,7 +34,7 @@ public:
 
   arma::vec getTaskPose(int robot_ind) const;
 
-  void setVelocity(const arma::vec &V);
+  bool setVelocity(const arma::vec &V);
 
   void waitNextCycle();
 
@@ -43,7 +43,7 @@ public:
 
 private:
 
-  void throwError(const std::string &msg);
+  bool throwError(const std::string &msg);
 
   double SINGULARITY_THRES;
   double VEL_THRES;

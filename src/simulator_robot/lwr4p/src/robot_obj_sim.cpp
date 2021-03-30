@@ -60,7 +60,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
   setLHandleWrenchReadFun([](){ return arma::vec().zeros(6); } );
   setRHandleWrenchReadFun([](){ return arma::vec().zeros(6); } );
-  send_feedback = [](const arma::vec &){ };
+  send_feedback = [](const arma::vec &){ return true; };
 
   wait_next_cycle = [this]()
   {
@@ -87,7 +87,8 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
   std::vector<double> q0;
   if (!nh.getParam("q0",q0)) throw std::runtime_error("Failed to load param \"q0\"...\n");
-  assignJointsPosition(q0);
+  lwr4p_q0 = q0;
+  assignJointsPosition(lwr4p_q0);
 
   arma::mat T_b_h1 = robo_::KinematicChain(robot_desc_param, "base_link", "left_handle_frame").getTaskPose(joint_pos);
   arma::mat T_b_h2 = robo_::KinematicChain(robot_desc_param, "base_link", "right_handle_frame").getTaskPose(joint_pos);
@@ -112,7 +113,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
     setLHandleWrenchReadFun([this](){ return ur_wrap->getWrench(0); } );
     setRHandleWrenchReadFun([this](){ return ur_wrap->getWrench(1); } );
 
-    send_feedback = [this](const arma::vec &V){ this->ur_wrap->setVelocity(V); };
+    send_feedback = [this](const arma::vec &V){ return this->ur_wrap->setVelocity(V); };
 
     wait_next_cycle = [this](){ this->ur_wrap->waitNextCycle(); };
   }
@@ -124,6 +125,12 @@ RobotObjSim::~RobotObjSim()
   sim_cycle_sem.notify();
   sim_stopped_sem.notify();
   state_pub->stop();
+}
+
+void RobotObjSim::gotoStartPose()
+{
+  assignJointsPosition(lwr4p_q0);
+  ur_wrap->moveToStartPose();
 }
 
 void RobotObjSim::startSim()
@@ -299,7 +306,11 @@ void RobotObjSim::simulationLoop()
     arma::vec V_h1 = twistMat(-r_rh1)*arma::join_vert(dp, vRot);
     arma::vec V_h2 = twistMat(-r_rh2)*arma::join_vert(dp, vRot);
 
-    send_feedback(arma::join_vert(V_h1, V_h2));
+    if ( !send_feedback(arma::join_vert(V_h1, V_h2)) )
+    {
+      run_sim_ = false;
+      break;
+    }
 
     if (log_on)
     {
@@ -365,7 +376,7 @@ void RobotObjSim::saveLogData(const std::string &filename)
     PRINT_WARNING_MSG(RobotObjSim_fun_ +"The data are empty...\n");
     return;
   }
-  
+
   try
   {
     io_::FileIO fid(filename, io_::FileIO::out|io_::FileIO::trunc);

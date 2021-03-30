@@ -111,7 +111,7 @@ void MainController::gotoStartPose()
   std::thread([this]()
   {
     emit gui->modeChangedSignal("GOTO START");
-    this->robot->ur_wrap->moveToStartPose();
+    this->robot->gotoStartPose();
     emit gui->modeChangedSignal("IDLE");
   }).detach();
 }

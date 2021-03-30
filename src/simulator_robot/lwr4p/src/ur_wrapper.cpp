@@ -191,15 +191,17 @@ Ur_Wrapper::~Ur_Wrapper()
 }
 
 
-void Ur_Wrapper::throwError(const std::string &msg)
+bool Ur_Wrapper::throwError(const std::string &msg)
 {
-  robot[0]->setJointsVelocity(arma::vec().zeros(6));
-  robot[1]->setJointsVelocity(arma::vec().zeros(6));
+  setIdleMode();
+  // robot[0]->setJointsVelocity(arma::vec().zeros(6));
+  // robot[1]->setJointsVelocity(arma::vec().zeros(6));
   PRINT_ERROR_MSG(msg);
-  throw std::runtime_error(msg);
+  //throw std::runtime_error(msg);
+  return false;
 }
 
-void Ur_Wrapper::setVelocity(const arma::vec &V)
+bool Ur_Wrapper::setVelocity(const arma::vec &V)
 {
   for (int i=0; i<2; i++)
   {
@@ -208,7 +210,7 @@ void Ur_Wrapper::setVelocity(const arma::vec &V)
       {
         robot[0]->setJointsVelocity(arma::vec().zeros(6));
         robot[1]->setJointsVelocity(arma::vec().zeros(6));
-        throwError("Robot " + std::to_string(i+1) + " is close to singular pose!\n");
+        return throwError("Robot " + std::to_string(i+1) + " is close to singular pose!\n");
       }
   }
 
@@ -217,26 +219,26 @@ void Ur_Wrapper::setVelocity(const arma::vec &V)
   V1.subvec(3,5) = R_b1_b*V1.subvec(3,5);
 
   if (arma::norm(V1.subvec(0,2)) > VEL_THRES)
-    throwError("Robot 1: Linear velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(0,2))) + "\n");
+    return throwError("Robot 1: Linear velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(0,2))) + "\n");
   if (arma::norm(V1.subvec(3,5)) > ROT_VEL_THRES)
-    throwError("Robot 1: Angular velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(3,5))) + "\n");
+    return throwError("Robot 1: Angular velocity limit exceeded: " + std::to_string(arma::norm(V1.subvec(3,5))) + "\n");
   if (pose[0](1) < -0.8)
-    throwError("Robot 1: Y-pos limit exceeded!\n");
+    return throwError("Robot 1: Y-pos limit exceeded!\n");
   if (pose[0](2) < 0.15)
-    throwError("Robot 1: Z-pos limit exceeded!\n");
+    return throwError("Robot 1: Z-pos limit exceeded!\n");
 
   arma::vec V2 = V.subvec(6,11);
   V2.subvec(0,2) = R_b2_b*V2.subvec(0,2);
   V2.subvec(3,5) = R_b2_b*V2.subvec(3,5);
 
   if (arma::norm(V2.subvec(0,2)) > VEL_THRES)
-    throwError("Robot 2: Linear velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(0,2))) + "\n");
+    return throwError("Robot 2: Linear velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(0,2))) + "\n");
   if (arma::norm(V2.subvec(3,5)) > ROT_VEL_THRES)
-    throwError("Robot 2: Angular velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(3,5))) + "\n");
+    return throwError("Robot 2: Angular velocity limit exceeded: " + std::to_string(arma::norm(V2.subvec(3,5))) + "\n");
   if (pose[1](1) < -0.8)
-    throwError("Robot 2: Y-pos limit exceeded!\n");
+    return throwError("Robot 2: Y-pos limit exceeded!\n");
   if (pose[1](2) < 0.15)
-    throwError("Robot 2: Z-pos limit exceeded!\n");
+    return throwError("Robot 2: Z-pos limit exceeded!\n");
 
   // robot[0]->setTaskVelocity(V1);
   // robot[1]->setTaskVelocity(V2);
@@ -245,6 +247,8 @@ void Ur_Wrapper::setVelocity(const arma::vec &V)
   arma::vec V2_cmd = calcVelocity_with_click(V2, 1);
   robot[0]->setTaskVelocity(V1_cmd);
   robot[1]->setTaskVelocity(V2_cmd);
+
+  return true;
 }
 
 arma::vec Ur_Wrapper::calcVelocity_with_click(const arma::vec &V, int i)
@@ -344,6 +348,14 @@ void Ur_Wrapper::moveToStartPose()
   // move with Cartesian trajectory to desired pose
   for (int i=0; i<2; i++) thr[i] = std::thread(&Ur_Wrapper::setCartTrajectory, this, poseT_mat.col(i), robot[i].get());
   for (int i=0; i<2; i++) thr[i].join();
+
+  pose.resize(2);
+  Vel.resize(2);
+  for (int i=0; i<2; i++)
+  {
+    pose[i] = getTaskPose(i);
+    Vel[i] = {0,0,0,0,0,0};
+  }
 
   PRINT_INFO_MSG("DONE!\n");
 

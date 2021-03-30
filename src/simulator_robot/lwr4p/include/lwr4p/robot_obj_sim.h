@@ -90,6 +90,8 @@ public:
   void clearLogData();
   void saveLogData(const std::string &filename);
 
+  void gotoStartPose();
+
 private:
 
   arma::rowvec log_Time;
@@ -104,7 +106,7 @@ private:
 
   std::function<arma::vec()> get_ctrl_signal_;
 
-  std::function<void(arma::vec)> send_feedback;
+  std::function<bool(arma::vec)> send_feedback;
 
   std::function<void()> wait_next_cycle;
 
@@ -155,6 +157,8 @@ private:
   RPoint lh_, rh_;
 
   bool run_sim_;
+
+  arma::vec lwr4p_q0;
 
   void simulationLoop();
 
