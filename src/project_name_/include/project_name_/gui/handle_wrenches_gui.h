@@ -25,39 +25,27 @@
 
 #include <project_name_/gui/wrench_ctrl_gui.h>
 
-class MainController; // forward decleration
-
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
 
 public:
 
-  explicit MainWindow(MainController *main_ctrl, QWidget *parent = 0);
+  explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
 
 signals:
   void closeSignal();
-  void modeChangedSignal(const QString &mode_name);
 
 public:
 
-  MainController *main_ctrl;
-
-  QFrame *createModeFrame();
-
   void createMenu();
 
-  QLineEdit *robot_mode_le;
-  QPushButton *freedrive_btn;
-  QPushButton *idle_btn;
-  QPushButton *run_sim_btn;
+  WrenchCtrlGui *lh_ctrl_;
+  WrenchCtrlGui *rh_ctrl_;
 
   QWidget *central_widget;
   QStatusBar *status_bar;
-
-  QFont font1;
-  QFont font2;
 
 };
 

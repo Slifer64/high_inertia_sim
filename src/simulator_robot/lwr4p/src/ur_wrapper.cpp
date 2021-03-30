@@ -464,3 +464,15 @@ arma::vec Ur_Wrapper::getTaskPose(int robot_ind) const
   arma::mat T = robot[robot_ind]->getTaskPose();
   return arma::join_vert(T.submat(0,3,2,3), math_::rotm2quat(T.submat(0,0,2,2)));
 }
+
+void Ur_Wrapper::setFreedriveMode()
+{
+  robot[0]->setFreedriveMode();
+  robot[1]->setFreedriveMode();
+}
+
+void Ur_Wrapper::setIdleMode()
+{
+  robot[0]->setNormalMode();
+  robot[1]->setNormalMode();
+}

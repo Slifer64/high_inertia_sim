@@ -1,3 +1,6 @@
+#ifndef ROBOT_OBJ_SIM_H
+#define ROBOT_OBJ_SIM_H
+
 #include <cstdlib>
 #include <vector>
 #include <memory>
@@ -66,6 +69,7 @@ public:
   double getObjectMass() const { return mo; }
 
   void startSim();
+  void stopSim();
 
   arma::vec get_pos_ee_obj() const { return obj_.p; }
 
@@ -74,9 +78,8 @@ public:
 
   arma::mat get_transform_lh_rh() const { return arma::inv(lh_.getTransformFromBase()) * rh_.getTransformFromBase(); }
 
-private:
-
   std::shared_ptr<Ur_Wrapper> ur_wrap;
+private:
 
   std::function<arma::vec()> get_lh_wrench_;
   std::function<arma::vec()> get_rh_wrench_;
@@ -131,7 +134,7 @@ private:
   RPoint obj_;
   RPoint lh_, rh_;
 
-  bool is_running;
+  bool run_sim_;
 
   void simulationLoop();
 
@@ -140,7 +143,8 @@ private:
   std::shared_ptr<robo_::KinematicChain> base_ee_chain;
   std::shared_ptr<robo_::RobotStatePublisher> state_pub;
 
-  mutable Semaphore sim_sem;
+  mutable Semaphore sim_cycle_sem;
+  mutable Semaphore sim_stopped_sem;
 
   bool use_lwr_dynamics;
 
@@ -168,3 +172,5 @@ private:
 
 
 }
+
+#endif // ROBOT_OBJ_SIM_H

@@ -16,7 +16,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 {
   ros::NodeHandle nh("~");
 
-  is_running = true;
+  run_sim_ = true;
 
   base_ee_chain.reset(new robo_::KinematicChain(robot_desc_param, "base_link", "ee_link"));
 
@@ -112,8 +112,9 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
 RobotObjSim::~RobotObjSim()
 {
-  is_running = false;
-  sim_sem.notify();
+  run_sim_ = false;
+  sim_cycle_sem.notify();
+  sim_stopped_sem.notify();
   state_pub->stop();
 }
 
@@ -125,12 +126,21 @@ void RobotObjSim::startSim()
   sim_thread.detach();
 }
 
+void RobotObjSim::stopSim()
+{
+  if (run_sim_)
+  {
+    run_sim_ = false;
+    if (!sim_stopped_sem.wait_until(500)) throw std::runtime_error("[RobotObjSim::stopSim]: Timeout on waiting for simulation to stop...\n");
+  }
+}
+
 void RobotObjSim::waitNextCycle() const
 {
   int cycle = 0;
   while (cycle < ctrl_cycle)
   {
-    sim_sem.wait();
+    sim_cycle_sem.wait();
     cycle++;
   }
 }
@@ -176,7 +186,9 @@ void RobotObjSim::simulationLoop()
 
   arma::mat D2 = D;
 
-  while (is_running)
+  run_sim_ = true;
+
+  while (run_sim_)
   {
     count++;
 
@@ -303,8 +315,9 @@ void RobotObjSim::simulationLoop()
     #endif
     // if (tc > 1.02*cycle_ns) PRINT_WARNING_MSG("Control cycle exceeded! cycle: " + std::to_string(tc*1e-6) + " ms\n");
 
-    sim_sem.notify();
+    sim_cycle_sem.notify();
   }
+  sim_stopped_sem.notify();
 }
 
 }

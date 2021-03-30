@@ -38,6 +38,9 @@ public:
 
   void waitNextCycle();
 
+  void setFreedriveMode();
+  void setIdleMode();
+
 private:
 
   void throwError(const std::string &msg);

@@ -13,12 +13,12 @@
 namespace lwr4p_
 {
 
-arma::vec getPositionFromTf(const arma::mat &Tf)
+inline arma::vec getPositionFromTf(const arma::mat &Tf)
 {
   return Tf.submat(0,3,2,3);
 }
 
-arma::mat getRotmFromTf(const arma::mat &Tf)
+inline arma::mat getRotmFromTf(const arma::mat &Tf)
 {
   return Tf.submat(0,0,2,2);
 }

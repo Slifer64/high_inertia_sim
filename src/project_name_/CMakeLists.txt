@@ -62,6 +62,7 @@ set(SRC_LIST
   include/${PROJECT_NAME}/gui/main_gui.cpp
 
   include/${PROJECT_NAME}/main.cpp
+  include/${PROJECT_NAME}/main_ctrl.cpp
 
 )
 
