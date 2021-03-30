@@ -220,6 +220,9 @@ void RobotObjSim::simulationLoop()
     F_h1 = get_lh_wrench_(); //F_lh;
     F_h2 = get_rh_wrench_(); //F_rh;
 
+    arma::vec F_rh1 = G_rh1*F_h1;
+    arma::vec F_rh2 = G_rh2*F_h2;
+
     if (count == 200)
     {
       count = 0;
@@ -246,13 +249,16 @@ void RobotObjSim::simulationLoop()
     {
       Mr = M;
 
-      // D2 = D;
-      // D2.submat(0,0,2,2) = D2.submat(0,0,2,2) + arma::eye(3,3)*20*exp(-15*arma::norm(V.subvec(0,2)));
-      // D2.submat(3,3,5,5) = D2.submat(3,3,5,5) + arma::eye(3,3)*1*exp(-15*arma::norm(V.subvec(3,5)));
+      double Fp_norm = arma::norm(F_rh1.subvec(0,2) + F_rh2.subvec(0,2));
+      double Fo_norm = arma::norm(F_rh1.subvec(3,5) + F_rh2.subvec(3,5));
+
+      D2 = D;
+      D2.submat(0,0,2,2) = (30 + 320*exp(-15*0*arma::norm(V.subvec(0,2)) -1*Fp_norm ) ) * arma::eye(3,3);
+      D2.submat(3,3,5,5) = (0.2 + 9.8*exp(-15*0*arma::norm(V.subvec(3,5)) -1*Fo_norm ) ) * arma::eye(3,3);
       Cr = D2*V;
     }
 
-    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + G_rh1*F_h1 + G_rh2*F_h2 ) , arma::solve_opts::likely_sympd );
+    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
 
