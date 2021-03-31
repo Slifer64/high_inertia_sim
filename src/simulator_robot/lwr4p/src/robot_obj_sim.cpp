@@ -138,6 +138,7 @@ void RobotObjSim::gotoStartPose()
 
 void RobotObjSim::startSim()
 {
+  if (run_sim_) return;
   if (!loadSimParams()) return;
 
   std::thread sim_thread = std::thread(&RobotObjSim::simulationLoop, this);
@@ -215,6 +216,9 @@ void RobotObjSim::simulationLoop()
 
   arma::mat D_plus = D_max - D_min;
 
+  double Fp_norm = 0;
+  double Fo_norm = 0;
+
   while (run_sim_)
   {
     count++;
@@ -288,12 +292,35 @@ void RobotObjSim::simulationLoop()
     {
       Mr = M;
 
-      double Fp_norm = arma::norm(F_rh1.subvec(0,2) + F_rh2.subvec(0,2));
-      double Fo_norm = arma::norm(F_rh1.subvec(3,5) + F_rh2.subvec(3,5));
+      arma::vec Fp = F_rh1.subvec(0,2) + F_rh2.subvec(0,2);
+      arma::vec Fo = F_rh1.subvec(3,5) + F_rh2.subvec(3,5);
+      // Fp_norm = 0.9*Fp_norm  + 0.1*arma::norm(Fp);
+      // Fo_norm = 0.9*Fo_norm  + 0.1*arma::norm(Fo);
+
+      // Fp_norm = std::max( arma::dot(V.subvec(0,2), Fp), 0.0 );
+      // Fo_norm = std::max( arma::dot(V.subvec(3,5), Fo), 0.0 );
+
+      Fp_norm = std::max( arma::dot(V.subvec(0,2), Fp) + arma::dot(V.subvec(3,5), Fo), 0.0 );
+      Fo_norm = Fp_norm;
 
       D2 = D_min;
-      D2.submat(0,0,2,2) += D_plus.submat(0,0,2,2)*exp(-a_Fp*Fp_norm);
-      D2.submat(3,3,5,5) += D_plus.submat(3,3,5,5)*exp(-a_Fo*Fo_norm);
+
+      double exp_fp;
+      double exp_fo;
+
+      if (use_force)
+      {
+        exp_fp = exp(-a_Fp*Fp_norm);
+        exp_fo = exp(-a_Fo*Fo_norm);
+      }
+      else
+      {
+        exp_fp = exp(-15*arma::norm(V.subvec(0,2)));
+        exp_fo = exp(-15*arma::norm(V.subvec(3,5)));
+      }
+
+      D2.submat(0,0,2,2) += D_plus.submat(0,0,2,2)*exp_fp;
+      D2.submat(3,3,5,5) += D_plus.submat(3,3,5,5)*exp_fo;
       Cr = D2*V;
     }
 
@@ -419,6 +446,8 @@ bool RobotObjSim::loadSimParams()
 
     if (!parser.getParam("a_Fp", a_Fp)) throw std::runtime_error("Failed to read param \"a_Fp\"...");
     if (!parser.getParam("a_Fo", a_Fo)) throw std::runtime_error("Failed to read param \"a_Fo\"...");
+
+    if (!parser.getParam("use_force", use_force)) throw std::runtime_error("Failed to read param \"use_force\"...");
 
     M = arma::diagmat(M_vec);
     D_min = arma::diagmat(D_min_vec);

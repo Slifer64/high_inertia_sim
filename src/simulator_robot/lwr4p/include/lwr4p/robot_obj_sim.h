@@ -191,6 +191,8 @@ private:
   double a_Fp;
   double a_Fo;
 
+  bool use_force;
+
   arma::vec F_rh;
   arma::vec F_lh;
 

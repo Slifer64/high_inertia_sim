@@ -105,6 +105,9 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
   T_b_b1 = T_b_h1 * arma::inv(T_b1_h1);
   T_b_b2 = T_b_h2 * arma::inv(T_b2_h2);
 
+  // std::cerr << "\nT_b_b1 = \n" << T_b_b1 << "\n\n";
+  // exit(0);
+
   setWrenchRotTransform(T_b_b1.submat(0,0,2,2), 0);
   setWrenchRotTransform(T_b_b2.submat(0,0,2,2), 1);
 
