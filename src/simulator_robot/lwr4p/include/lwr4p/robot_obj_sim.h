@@ -23,6 +23,13 @@ using namespace as64_;
 namespace lwr4p_
 {
 
+enum DampAdaptMethod
+{
+  FORCE_ADAPT = 0,
+  VEL_ADAPT = 1,
+  POWER_ADAPT = 2
+};
+
 struct RPoint
 {
   RPoint(const arma::mat &Tf=arma::mat().eye(4,4))
@@ -93,6 +100,8 @@ public:
   void gotoStartPose();
 
 private:
+
+  enum DampAdaptMethod damp_adapt_method;
 
   arma::rowvec log_Time;
   arma::mat log_Vh1;

@@ -256,9 +256,9 @@ void RobotObjSim::simulationLoop()
     arma::mat Mo2 = Gamma_or.t() * Mo * Gamma_or;
 
     arma::vec temp(6);
-    temp.subvec(0,2) = arma::dot(vRot,vRot)*r_ro - arma::dot(vRot,r_ro)*vRot; // arma::cross(vRot, arma::cross(r_ro,vRot) );
+    temp.subvec(0,2) = mo*( arma::dot(vRot,vRot)*r_ro - arma::dot(vRot,r_ro)*vRot ); // arma::cross(vRot, arma::cross(r_ro,vRot) );
     temp.subvec(3,5) = arma::cross(vRot, Jo*vRot);
-    arma::mat Co2 = G_ro*Mo*temp;
+    arma::mat Co2 = G_ro*temp;
 
     F_h1 = get_lh_wrench_(); //F_lh;
     F_h2 = get_rh_wrench_(); //F_rh;
@@ -300,27 +300,29 @@ void RobotObjSim::simulationLoop()
       // Fp_norm = std::max( arma::dot(V.subvec(0,2), Fp), 0.0 );
       // Fo_norm = std::max( arma::dot(V.subvec(3,5), Fo), 0.0 );
 
-      Fp_norm = std::max( arma::dot(V.subvec(0,2), Fp) + arma::dot(V.subvec(3,5), Fo), 0.0 );
-      Fo_norm = Fp_norm;
-
       D2 = D_min;
 
-      double exp_fp;
-      double exp_fo;
+      double vp;
+      double vo;
 
-      if (use_force)
+      if (damp_adapt_method == FORCE_ADAPT)
       {
-        exp_fp = exp(-a_Fp*Fp_norm);
-        exp_fo = exp(-a_Fo*Fo_norm);
+        vp = arma::norm(Fp);
+        vo = arma::norm(Fo);
       }
-      else
+      else if (damp_adapt_method == VEL_ADAPT)
       {
-        exp_fp = exp(-15*arma::norm(V.subvec(0,2)));
-        exp_fo = exp(-15*arma::norm(V.subvec(3,5)));
+        vp = arma::norm(V.subvec(0,2));
+        vo = arma::norm(V.subvec(3,5));
+      }
+      else // (damp_adapt_method == POWER_ADAPT)
+      {
+        vp = std::max( arma::dot(V.subvec(0,2), Fp) + arma::dot(V.subvec(3,5), Fo), 0.0 );
+        vo = vp;
       }
 
-      D2.submat(0,0,2,2) += D_plus.submat(0,0,2,2)*exp_fp;
-      D2.submat(3,3,5,5) += D_plus.submat(3,3,5,5)*exp_fo;
+      D2.submat(0,0,2,2) += D_plus.submat(0,0,2,2)*exp(-a_Fp*vp);
+      D2.submat(3,3,5,5) += D_plus.submat(3,3,5,5)*exp(-a_Fo*vo);
       Cr = D2*V;
     }
 
@@ -438,16 +440,46 @@ bool RobotObjSim::loadSimParams()
     arma::rowvec Jo_vec, M_vec, D_min_vec, D_max_vec;
 
     if (!parser.getParam("mo", mo)) throw std::runtime_error("Failed to read param \"mo\"...");
-    if (!parser.getParam("Jo", Jo_vec)) throw std::runtime_error("Failed to read param \"Jo\"...");
+    if (!parser.getParam("Jo", Jo_vec))
+    {
+      PRINT_WARNING_MSG("Failed to read param \"Jo\"...");
+      double obj_w;
+      double obj_l;
+      double obj_h;
+      if (!parser.getParam("obj_w", obj_w)) throw std::runtime_error("Failed to read param \"obj_w\"...");
+      if (!parser.getParam("obj_l", obj_l)) throw std::runtime_error("Failed to read param \"obj_l\"...");
+      if (!parser.getParam("obj_h", obj_h)) throw std::runtime_error("Failed to read param \"obj_h\"...");
+      Jo_vec = (mo/12) * arma::rowvec( { (std::pow(obj_l,2)+std::pow(obj_h,2)), (std::pow(obj_w,2)+std::pow(obj_h,2)), (std::pow(obj_l,2)+std::pow(obj_w,2)) } );
+    }
 
+    std::cerr << "Jo = " << Jo_vec << "\n";
+    
     if (!parser.getParam("M", M_vec)) throw std::runtime_error("Failed to read param \"M\"...");
     if (!parser.getParam("D_min", D_min_vec)) throw std::runtime_error("Failed to read param \"D_min\"...");
     if (!parser.getParam("D_max", D_max_vec)) throw std::runtime_error("Failed to read param \"D_max\"...");
 
-    if (!parser.getParam("a_Fp", a_Fp)) throw std::runtime_error("Failed to read param \"a_Fp\"...");
-    if (!parser.getParam("a_Fo", a_Fo)) throw std::runtime_error("Failed to read param \"a_Fo\"...");
 
-    if (!parser.getParam("use_force", use_force)) throw std::runtime_error("Failed to read param \"use_force\"...");
+    std::string damp_adapt_meth_str;
+    if (!parser.getParam("damp_adapt_method", damp_adapt_meth_str)) throw std::runtime_error("Failed to read param \"damp_adapt_method\"...");
+    if (damp_adapt_meth_str.compare("force")==0)
+    {
+      damp_adapt_method = FORCE_ADAPT;
+      if (!parser.getParam("a_Dp_f", a_Fp)) throw std::runtime_error("Failed to read param \"a_Dp_f\"...");
+      if (!parser.getParam("a_Do_f", a_Fo)) throw std::runtime_error("Failed to read param \"a_Do_f\"...");
+    }
+    else if (damp_adapt_meth_str.compare("vel")==0)
+    {
+      damp_adapt_method = FORCE_ADAPT;
+      if (!parser.getParam("a_Dp_v", a_Fp)) throw std::runtime_error("Failed to read param \"a_Dp_v\"...");
+      if (!parser.getParam("a_Do_v", a_Fo)) throw std::runtime_error("Failed to read param \"a_Do_v\"...");
+    }
+    else if (damp_adapt_meth_str.compare("power")==0)
+    {
+      damp_adapt_method = FORCE_ADAPT;
+      if (!parser.getParam("a_Dp_p", a_Fp)) throw std::runtime_error("Failed to read param \"a_Dp_p\"...");
+      if (!parser.getParam("a_Do_p", a_Fo)) throw std::runtime_error("Failed to read param \"a_Do_p\"...");
+    }
+    else throw std::runtime_error("Unsupported damping adaptation method \"" + damp_adapt_meth_str + "\"...");
 
     M = arma::diagmat(M_vec);
     D_min = arma::diagmat(D_min_vec);
