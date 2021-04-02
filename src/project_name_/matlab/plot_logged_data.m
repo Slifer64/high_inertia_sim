@@ -1,20 +1,21 @@
 % clc;
-close all;
+% close all;
 clear;
 
 set_matlab_utils_path();
 
 % user = 'antonis';
 % user = 'dimitris';
-user = 'dora';
+% user = 'dora';
 
+user = 'fotis';
 
- filename = ['../data/' user '_force_Dadapt_1.bin'];
-%  filename = ['../data/' user '_power_Dadapt_1.bin'];
-%  filename = ['../data/' user '_vel_Dadapt_2.bin'];
-% filename = ['../data/' user '_force_Dmin_1.bin']';
-% filename = ['../data/' user '_force_Dmax_1.bin'];
-
+% filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
+filename = ['../data/' user '_power_Dadapt_80kg.bin'];
+% filename = ['../data/' user '_force_Dadapt_1.bin'];
+% filename = ['../data/' user '_power_Dmin_80kg.bin'];
+% filename = ['../data/' user '_power_Dmax_80kg.bin'];
+% filename = ['../data/' user '_Dmean_80kg.bin'];
 
 % filename = '../data/data.bin';
 
@@ -106,19 +107,21 @@ end
 % 
 % return 
 
-fig = plotPose(Time_data, P_data, qLog_data);
+% fig = plotPose(Time_data, P_data, qLog_data);
+% 
+% fig = plotTwist(Time_data, Vh1_data);
+% fig.Position = [150 526 560 420];
+% 
+% fig = plotTwist(Time_data, Vh2_data);
+% fig.Position = [722 521 560 420];
+% 
+% fig = plotWrench(Time_data, Fh1_data);
+% fig.Position = [156 20 560 420];
+% 
+% fig = plotWrench(Time_data, Fh2_data);
+% fig.Position = [730 15 560 420];
 
-fig = plotTwist(Time_data, Vh1_data);
-fig.Position = [150 526 560 420];
-
-fig = plotTwist(Time_data, Vh2_data);
-fig.Position = [722 521 560 420];
-
-fig = plotWrench(Time_data, Fh1_data);
-fig.Position = [156 20 560 420];
-
-fig = plotWrench(Time_data, Fh2_data);
-fig.Position = [730 15 560 420];
+fig = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
 
 fig = plotDamping(Time_data, Damp_data);
 fig.Position = [1314 268 560 420];
@@ -224,6 +227,8 @@ function fig = plotWrench(Time, Wrench)
 
 end
 
+%% ---------------------------------------------
+
 function fig = plotWrenchNorm(Time, Wrench)
 
     Force = Wrench(1:3,:);
@@ -246,6 +251,44 @@ function fig = plotWrenchNorm(Time, Wrench)
 
 end
 
+%% ---------------------------------------------
+
+function fig = plotPower(Time, Vel_data, F_data)
+
+    n_data = length(Time);
+
+    Power = zeros(1, n_data);
+
+    for j=1:n_data
+        Power(j) = dot(Vel_data(:,j), F_data(:,j) );
+    end
+    
+    dt = Time(2) - Time(1);
+    
+    fig = figure; hold on;
+    
+    plot([Time(1) Time(end)], [0 0], 'LineWidth',1, 'Color',[0.1 0.1 0.1], 'LineStyle',':');
+    
+    ind = find(Power>-1e-1);
+    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
+    for i=1:length(ind2)-1
+        plot(Time(ind(ind2(i):ind2(i+1)-1)), Power(ind(ind2(i):ind2(i+1)-1)), 'LineWidth',2, 'Color','blue');
+    end
+    
+    ind = find(Power<-1e-3);
+    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
+    for i=1:length(ind2)-1
+        plot(Time(ind(ind2(i):ind2(i+1)-1)), Power(ind(ind2(i):ind2(i+1)-1)), 'LineWidth',2, 'Color','red');
+    end
+ 
+    title('Power [$W$]', 'interpreter','latex', 'fontsize',16);
+    xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14);
+    
+    abs_power = sum(abs(Power)*dt)
+    power = sum((Power)*dt)
+    
+    axis tight;
+end
 
 %% ---------------------------------------------
 

@@ -219,6 +219,8 @@ void RobotObjSim::simulationLoop()
   double Fp_norm = 0;
   double Fo_norm = 0;
 
+  print_to_console = false;
+
   while (run_sim_)
   {
     count++;
@@ -323,7 +325,19 @@ void RobotObjSim::simulationLoop()
 
       D2.submat(0,0,2,2) += D_plus.submat(0,0,2,2)*exp(-a_Fp*vp);
       D2.submat(3,3,5,5) += D_plus.submat(3,3,5,5)*exp(-a_Fo*vo);
+
       Cr = D2*V;
+
+      if (damp_adapt_method == VEL_ADAPT)
+      {
+        double Dp_ = std::min( D_min(0,0), D_max(0,0)*std::exp(-a_Fp*vp) );
+        double Do_ = std::min( D_min(3,3), D_max(3,3)*std::exp(-a_Fo*vo) );
+        arma::vec V_temp = V;
+        V_temp.subvec(0,2) *= Dp_;
+        V_temp.subvec(3,5) *= Do_;
+        Cr = V_temp;
+      }
+
     }
 
     u = get_ctrl_signal_();
@@ -453,7 +467,7 @@ bool RobotObjSim::loadSimParams()
     }
 
     std::cerr << "Jo = " << Jo_vec << "\n";
-    
+
     if (!parser.getParam("M", M_vec)) throw std::runtime_error("Failed to read param \"M\"...");
     if (!parser.getParam("D_min", D_min_vec)) throw std::runtime_error("Failed to read param \"D_min\"...");
     if (!parser.getParam("D_max", D_max_vec)) throw std::runtime_error("Failed to read param \"D_max\"...");
@@ -469,17 +483,23 @@ bool RobotObjSim::loadSimParams()
     }
     else if (damp_adapt_meth_str.compare("vel")==0)
     {
-      damp_adapt_method = FORCE_ADAPT;
+      damp_adapt_method = VEL_ADAPT;
       if (!parser.getParam("a_Dp_v", a_Fp)) throw std::runtime_error("Failed to read param \"a_Dp_v\"...");
       if (!parser.getParam("a_Do_v", a_Fo)) throw std::runtime_error("Failed to read param \"a_Do_v\"...");
     }
     else if (damp_adapt_meth_str.compare("power")==0)
     {
-      damp_adapt_method = FORCE_ADAPT;
+      damp_adapt_method = POWER_ADAPT;
       if (!parser.getParam("a_Dp_p", a_Fp)) throw std::runtime_error("Failed to read param \"a_Dp_p\"...");
       if (!parser.getParam("a_Do_p", a_Fo)) throw std::runtime_error("Failed to read param \"a_Do_p\"...");
     }
     else throw std::runtime_error("Unsupported damping adaptation method \"" + damp_adapt_meth_str + "\"...");
+
+    std::cerr << "damping adapt params: ";
+    if (damp_adapt_method == FORCE_ADAPT) std::cerr << "FORCE_ADAPT , ";
+    else if (damp_adapt_method == VEL_ADAPT) std::cerr << "VEL_ADAPT , ";
+    else if (damp_adapt_method == POWER_ADAPT) std::cerr << "POWER_ADAPT , ";
+    std::cerr << a_Fp << " , " << a_Fo << "\n";
 
     M = arma::diagmat(M_vec);
     D_min = arma::diagmat(D_min_vec);
@@ -488,8 +508,6 @@ bool RobotObjSim::loadSimParams()
     Jo_o = arma::diagmat(Jo_vec);
     Mo_o = arma::diagmat(arma::vec({mo, mo, mo, 0,0,0}));
     Mo_o.submat(3,3,5,5) = Jo_o;
-
-
 
     return true;
   }

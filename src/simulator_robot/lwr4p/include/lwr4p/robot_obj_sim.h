@@ -99,7 +99,11 @@ public:
 
   void gotoStartPose();
 
+  bool print_to_console;
+
 private:
+
+
 
   enum DampAdaptMethod damp_adapt_method;
 
