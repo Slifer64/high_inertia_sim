@@ -1,4 +1,4 @@
-% clc;
+clc;
 % close all;
 % clear;
 
@@ -12,8 +12,8 @@ set_matlab_utils_path();
 user = 'sotiris';
 
 % filename = ['../data/' user '_power_Dadapt_80kg.bin'];
-% filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
-filename = ['../data/' user '_Dmean_80kg.bin'];
+filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
+% filename = ['../data/' user '_Dmean_80kg.bin'];
 % filename = ['../data/' user '_Dmin_80kg.bin'];
 % filename = ['../data/' user '_Dmax_80kg.bin'];
 
@@ -117,14 +117,14 @@ end
 % fig.Position = [722 521 560 420];
 % 
 % fig = plotWrench(Time_data, Fh1_data);
-% fig.Position = [156 20 560 420];
+% fig.Position(3:4) = [604 408];
 % 
 % fig = plotWrench(Time_data, Fh2_data);
 % fig.Position = [730 15 560 420];
 
-[fig ax] = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
+% [fig ax] = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
 
-% fig = plotDamping(Time_data, Damp_data);
+fig = plotDamping(Time_data, Damp_data);
 % fig.Position = [1314 268 560 420];
 
 
@@ -133,26 +133,29 @@ end
 
 function [fig, ax] = plotPower(Time, Vel_data, F_data)
     
-%     line_style = '-';
-%     pos_color = 'blue';
-%     neg_color = 'magenta';
-%     legend_prefix = '$D_{power}: ';
-    
     line_style = '-';
-    pos_color = [0 0.8 0.8];
-    neg_color = [0.49 0.18 0.56]; 
-    legend_prefix = '$D_{vel}: ';
+    pos_color = 'blue';
+    neg_color = 'magenta';
+    legend_prefix = '$D_{pow}: ';
+    
+%     line_style = '-';
+%     pos_color = [0 0.8 0.8];
+%     neg_color = [0.49 0.18 0.56]; 
+%     legend_prefix = '$D_{vel}: ';
     
     n_data = length(Time);
 
     Power = zeros(1, n_data);
-    
-    pos_work = 0;
-    neg_work = 0;
 
     for j=1:n_data
         Power(j) = dot(Vel_data(:,j), F_data(:,j) );
     end
+    
+    Pos_Power = Power;
+    Pos_Power(Power<0) = nan;
+    
+    Neg_Power = Power;
+    Neg_Power(Power>0) = nan;
     
     dt = Time(2) - Time(1);
     
@@ -163,34 +166,21 @@ function [fig, ax] = plotPower(Time, Vel_data, F_data)
     % create legend
     plot(nan, nan, 'LineWidth',2, 'Color',pos_color);
     plot(nan, nan, 'LineWidth',2, 'Color',neg_color);
-    legend({[legend_prefix 'E_{hum \rightarrow rob}$'], [legend_prefix 'E_{rob \rightarrow hum}$']}, 'interpreter','latex', 'fontsize',15);
+    legend({[legend_prefix 'E_{h \rightarrow r}$'], [legend_prefix 'E_{r \rightarrow h}$']}, 'interpreter','latex', 'fontsize',15);
     
     plot([Time(1) Time(end)], [0 0], 'LineWidth',1, 'Color',[0.1 0.1 0.1], 'LineStyle',':', 'HandleVisibility','off');
     
-    ind = find(Power>=-1e-6);
-    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
-    for i=1:length(ind2)-1
-        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
-        P_i = Power(ind(ind2(i):ind2(i+1)-1));
-        pos_work = pos_work + sum(P_i)*dt;
-        plot(Time_i, P_i, 'LineWidth',2, 'Color',pos_color, 'LineStyle',line_style, 'HandleVisibility','off');
-    end
-    
-    ind = find(Power<-1e-6);
-    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
-    for i=1:length(ind2)-1
-        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
-        P_i = Power(ind(ind2(i):ind2(i+1)-1));
-        neg_work = neg_work + sum(P_i)*dt;
-        plot(Time_i, P_i, 'LineWidth',2, 'Color',neg_color, 'LineStyle',line_style, 'HandleVisibility','off');
-    end
+    plot(Time, Pos_Power, 'LineWidth',2, 'Color',pos_color, 'LineStyle',line_style, 'HandleVisibility','off');
+    plot(Time, Neg_Power, 'LineWidth',2, 'Color',neg_color, 'LineStyle',line_style, 'HandleVisibility','off');
  
     ylabel('Power [$W$]', 'interpreter','latex', 'fontsize',16);
     xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14);
     
     
-    abs_work = sum(abs(Power)*dt);
-    work = sum((Power)*dt);
+    abs_work = sum(abs(Power))*dt;
+    work = sum(Power)*dt;
+    pos_work = sum(Pos_Power)*dt;
+    neg_work = sum(Neg_Power)*dt;
     
     fprintf('====================\n');
     fprintf('abs_work:  %6.3f\n',abs_work);
@@ -239,22 +229,24 @@ function fig = plotPose(Time, P_data, qLog_data)
 
     k = [1 3 5];
     for i=1:3
-        subplot(3,2,k(i));
+        ax = subplot(3,2,k(i));
         plot(Time, P_data(i,:), 'LineWidth',2, 'Color',colors{i});
         ylabel(y_labels{i}, 'interpreter','latex', 'fontsize',14);
         if (i==1), title('Cart Pos [$m$]', 'interpreter','latex', 'fontsize',16); end
         if (i==3), xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14); end
         axis tight;
+        ax.YLim = [ min([-0.2, ax.YLim(1)]), max([ 0.2, ax.YLim(2)]) ];
     end
 
     k = k+1;
     for i=1:3
-        subplot(3,2,k(i));
+        ax = subplot(3,2,k(i));
         plot(Time, qLog_data(i,:), 'LineWidth',2, 'Color',colors{i});
     %     ylabel(y_labels{i}, 'interpreter','latex', 'fontsize',14);
-        if (i==1), title('$\log(Q)=k\theta$ [$rad$]', 'interpreter','latex', 'fontsize',16); end
+        if (i==1), title('$\log(\mathbf{Q})=\mathbf{k}\theta$ [$rad$]', 'interpreter','latex', 'fontsize',16); end
         if (i==3), xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14); end
         axis tight;
+        ax.YLim = [ min([-0.2, ax.YLim(1)]), max([ 0.2, ax.YLim(2)]) ];
     end
 
 end
