@@ -1,4 +1,4 @@
-% clc;
+clc;
 % close all;
 clear;
 
@@ -7,15 +7,16 @@ set_matlab_utils_path();
 % user = 'antonis';
 % user = 'dimitris';
 % user = 'dora';
+% user = 'sotiris';
 
-user = 'fotis';
+user = 'sotiris';
 
-% filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
-filename = ['../data/' user '_power_Dadapt_80kg.bin'];
-% filename = ['../data/' user '_force_Dadapt_1.bin'];
-% filename = ['../data/' user '_power_Dmin_80kg.bin'];
-% filename = ['../data/' user '_power_Dmax_80kg.bin'];
+% filename = ['../data/' user '_power_Dadapt_80kg.bin'];
+filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
 % filename = ['../data/' user '_Dmean_80kg.bin'];
+% filename = ['../data/' user '_Dmin_80kg.bin'];
+% filename = ['../data/' user '_Dmax_80kg.bin'];
+
 
 % filename = '../data/data.bin';
 
@@ -73,7 +74,7 @@ end
 
 P = W/Tf;
 
-fprintf('Power: %.2f , Work: %.2f , duration: %.2f \n', P, W, Tf);
+% fprintf('Power: %.2f , Work: %.2f , duration: %.2f \n', P, W, Tf);
 
 %% ================= Calc Pos/Orient ===================
 P = zeros(3,1);
@@ -123,8 +124,8 @@ end
 
 fig = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
 
-fig = plotDamping(Time_data, Damp_data);
-fig.Position = [1314 268 560 420];
+% fig = plotDamping(Time_data, Damp_data);
+% fig.Position = [1314 268 560 420];
 
 
 %% ===============================================
@@ -254,10 +255,17 @@ end
 %% ---------------------------------------------
 
 function fig = plotPower(Time, Vel_data, F_data)
-
+    
+    line_style = '-';
+    pos_color = 'cyan';
+    neg_color = [0.49 0.18 0.56]; %'magenta';
+    
     n_data = length(Time);
 
     Power = zeros(1, n_data);
+    
+    pos_work = 0;
+    neg_work = 0;
 
     for j=1:n_data
         Power(j) = dot(Vel_data(:,j), F_data(:,j) );
@@ -267,25 +275,45 @@ function fig = plotPower(Time, Vel_data, F_data)
     
     fig = figure; hold on;
     
+    % create legend
+    plot(nan, nan, 'LineWidth',2, 'Color','blue');
+    plot(nan, nan, 'LineWidth',2, 'Color','red');
+    legend({'human $\rightarrow$ robot', 'robot $\rightarrow$ human'}, 'interpreter','latex', 'fontsize',15);
+    
     plot([Time(1) Time(end)], [0 0], 'LineWidth',1, 'Color',[0.1 0.1 0.1], 'LineStyle',':');
     
-    ind = find(Power>-1e-1);
+    ind = find(Power>=-1e-6);
     ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
     for i=1:length(ind2)-1
-        plot(Time(ind(ind2(i):ind2(i+1)-1)), Power(ind(ind2(i):ind2(i+1)-1)), 'LineWidth',2, 'Color','blue');
+        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
+        P_i = Power(ind(ind2(i):ind2(i+1)-1));
+        pos_work = pos_work + sum(P_i)*dt;
+        plot(Time_i, P_i, 'LineWidth',2, 'Color',pos_color, 'LineStyle',line_style);
     end
     
-    ind = find(Power<-1e-3);
+    ind = find(Power<-1e-6);
     ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
     for i=1:length(ind2)-1
-        plot(Time(ind(ind2(i):ind2(i+1)-1)), Power(ind(ind2(i):ind2(i+1)-1)), 'LineWidth',2, 'Color','red');
+        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
+        P_i = Power(ind(ind2(i):ind2(i+1)-1));
+        neg_work = neg_work + sum(P_i)*dt;
+        plot(Time_i, P_i, 'LineWidth',2, 'Color',neg_color, 'LineStyle',line_style);
     end
  
-    title('Power [$W$]', 'interpreter','latex', 'fontsize',16);
+    ylabel('Power [$W$]', 'interpreter','latex', 'fontsize',16);
     xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14);
     
-    abs_power = sum(abs(Power)*dt)
-    power = sum((Power)*dt)
+    
+    abs_work = sum(abs(Power)*dt);
+    work = sum((Power)*dt);
+    
+    fprintf('====================\n');
+    fprintf('abs_work:  %6.3f\n',abs_work);
+    fprintf('work    :  %6.3f\n',work);
+    fprintf('pos_work:  %6.3f\n',pos_work);
+    fprintf('neg_work:  %6.3f\n',neg_work);
+    fprintf('duration:  %6.3f\n',Time(end));
+    fprintf('====================\n');
     
     axis tight;
 end
