@@ -1,6 +1,6 @@
-clc;
+% clc;
 % close all;
-clear;
+% clear;
 
 set_matlab_utils_path();
 
@@ -12,8 +12,8 @@ set_matlab_utils_path();
 user = 'sotiris';
 
 % filename = ['../data/' user '_power_Dadapt_80kg.bin'];
-filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
-% filename = ['../data/' user '_Dmean_80kg.bin'];
+% filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
+filename = ['../data/' user '_Dmean_80kg.bin'];
 % filename = ['../data/' user '_Dmin_80kg.bin'];
 % filename = ['../data/' user '_Dmax_80kg.bin'];
 
@@ -122,7 +122,7 @@ end
 % fig = plotWrench(Time_data, Fh2_data);
 % fig.Position = [730 15 560 420];
 
-fig = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
+[fig ax] = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
 
 % fig = plotDamping(Time_data, Damp_data);
 % fig.Position = [1314 268 560 420];
@@ -130,6 +130,105 @@ fig = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
 
 %% ===============================================
 %% ============  Utility functions  ==============
+
+function [fig, ax] = plotPower(Time, Vel_data, F_data)
+    
+%     line_style = '-';
+%     pos_color = 'blue';
+%     neg_color = 'magenta';
+%     legend_prefix = '$D_{power}: ';
+    
+    line_style = '-';
+    pos_color = [0 0.8 0.8];
+    neg_color = [0.49 0.18 0.56]; 
+    legend_prefix = '$D_{vel}: ';
+    
+    n_data = length(Time);
+
+    Power = zeros(1, n_data);
+    
+    pos_work = 0;
+    neg_work = 0;
+
+    for j=1:n_data
+        Power(j) = dot(Vel_data(:,j), F_data(:,j) );
+    end
+    
+    dt = Time(2) - Time(1);
+    
+    fig = figure;
+    ax = axes();
+    hold on;
+    
+    % create legend
+    plot(nan, nan, 'LineWidth',2, 'Color',pos_color);
+    plot(nan, nan, 'LineWidth',2, 'Color',neg_color);
+    legend({[legend_prefix 'E_{hum \rightarrow rob}$'], [legend_prefix 'E_{rob \rightarrow hum}$']}, 'interpreter','latex', 'fontsize',15);
+    
+    plot([Time(1) Time(end)], [0 0], 'LineWidth',1, 'Color',[0.1 0.1 0.1], 'LineStyle',':', 'HandleVisibility','off');
+    
+    ind = find(Power>=-1e-6);
+    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
+    for i=1:length(ind2)-1
+        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
+        P_i = Power(ind(ind2(i):ind2(i+1)-1));
+        pos_work = pos_work + sum(P_i)*dt;
+        plot(Time_i, P_i, 'LineWidth',2, 'Color',pos_color, 'LineStyle',line_style, 'HandleVisibility','off');
+    end
+    
+    ind = find(Power<-1e-6);
+    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
+    for i=1:length(ind2)-1
+        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
+        P_i = Power(ind(ind2(i):ind2(i+1)-1));
+        neg_work = neg_work + sum(P_i)*dt;
+        plot(Time_i, P_i, 'LineWidth',2, 'Color',neg_color, 'LineStyle',line_style, 'HandleVisibility','off');
+    end
+ 
+    ylabel('Power [$W$]', 'interpreter','latex', 'fontsize',16);
+    xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14);
+    
+    
+    abs_work = sum(abs(Power)*dt);
+    work = sum((Power)*dt);
+    
+    fprintf('====================\n');
+    fprintf('abs_work:  %6.3f\n',abs_work);
+    fprintf('work    :  %6.3f\n',work);
+    fprintf('pos_work:  %6.3f\n',pos_work);
+    fprintf('neg_work:  %6.3f\n',neg_work);
+    fprintf('duration:  %6.3f\n',Time(end));
+    fprintf('====================\n');
+    
+    axis tight;
+end
+
+%% ---------------------------------------------
+
+function fig = plotWrenchNorm(Time, Wrench)
+
+    Force = Wrench(1:3,:);
+    Torque = Wrench(4:6,:);
+    
+    
+    n_data = size(Force,2);
+    force_norm = zeros(1,n_data);
+    torque_norm = zeros(1,n_data);
+    for j=1:n_data
+        force_norm(j) = norm(Force(:,j));
+        torque_norm(j) = norm(Torque(:,j));
+    end
+
+    fig = figure;
+    subplot(1,2,1);
+    plot(Time, force_norm, 'LineWidth',2, 'Color','blue');
+    subplot(1,2,2);
+    plot(Time, torque_norm, 'LineWidth',2, 'Color','red');
+
+end
+
+%% ---------------------------------------------
+
 
 function fig = plotPose(Time, P_data, qLog_data)
 
@@ -228,95 +327,6 @@ function fig = plotWrench(Time, Wrench)
 
 end
 
-%% ---------------------------------------------
-
-function fig = plotWrenchNorm(Time, Wrench)
-
-    Force = Wrench(1:3,:);
-    Torque = Wrench(4:6,:);
-    
-    
-    n_data = size(Force,2);
-    force_norm = zeros(1,n_data);
-    torque_norm = zeros(1,n_data);
-    for j=1:n_data
-        force_norm(j) = norm(Force(:,j));
-        torque_norm(j) = norm(Torque(:,j));
-    end
-
-    fig = figure;
-    subplot(1,2,1);
-    plot(Time, force_norm, 'LineWidth',2, 'Color','blue');
-    subplot(1,2,2);
-    plot(Time, torque_norm, 'LineWidth',2, 'Color','red');
-
-end
-
-%% ---------------------------------------------
-
-function fig = plotPower(Time, Vel_data, F_data)
-    
-    line_style = '-';
-    pos_color = 'cyan';
-    neg_color = [0.49 0.18 0.56]; %'magenta';
-    
-    n_data = length(Time);
-
-    Power = zeros(1, n_data);
-    
-    pos_work = 0;
-    neg_work = 0;
-
-    for j=1:n_data
-        Power(j) = dot(Vel_data(:,j), F_data(:,j) );
-    end
-    
-    dt = Time(2) - Time(1);
-    
-    fig = figure; hold on;
-    
-    % create legend
-    plot(nan, nan, 'LineWidth',2, 'Color','blue');
-    plot(nan, nan, 'LineWidth',2, 'Color','red');
-    legend({'human $\rightarrow$ robot', 'robot $\rightarrow$ human'}, 'interpreter','latex', 'fontsize',15);
-    
-    plot([Time(1) Time(end)], [0 0], 'LineWidth',1, 'Color',[0.1 0.1 0.1], 'LineStyle',':');
-    
-    ind = find(Power>=-1e-6);
-    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
-    for i=1:length(ind2)-1
-        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
-        P_i = Power(ind(ind2(i):ind2(i+1)-1));
-        pos_work = pos_work + sum(P_i)*dt;
-        plot(Time_i, P_i, 'LineWidth',2, 'Color',pos_color, 'LineStyle',line_style);
-    end
-    
-    ind = find(Power<-1e-6);
-    ind2 = [ find(diff([ind(1)-2 ind])>1) , length(ind)+1];
-    for i=1:length(ind2)-1
-        Time_i = Time(ind(ind2(i):ind2(i+1)-1));
-        P_i = Power(ind(ind2(i):ind2(i+1)-1));
-        neg_work = neg_work + sum(P_i)*dt;
-        plot(Time_i, P_i, 'LineWidth',2, 'Color',neg_color, 'LineStyle',line_style);
-    end
- 
-    ylabel('Power [$W$]', 'interpreter','latex', 'fontsize',16);
-    xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14);
-    
-    
-    abs_work = sum(abs(Power)*dt);
-    work = sum((Power)*dt);
-    
-    fprintf('====================\n');
-    fprintf('abs_work:  %6.3f\n',abs_work);
-    fprintf('work    :  %6.3f\n',work);
-    fprintf('pos_work:  %6.3f\n',pos_work);
-    fprintf('neg_work:  %6.3f\n',neg_work);
-    fprintf('duration:  %6.3f\n',Time(end));
-    fprintf('====================\n');
-    
-    axis tight;
-end
 
 %% ---------------------------------------------
 

@@ -28,7 +28,7 @@
 
         <link name="${name}_leftBar">
             <visual>
-                <origin xyz="-${bar_length/2} -${0.3*handle_length} 0" rpy="0 1.57 0" />
+                <origin xyz="-${bar_length/2} -${0*handle_length} 0" rpy="0 1.57 0" />
                 <geometry>
                     <cylinder radius="${bar_radius}" length="${bar_length}" />
                 </geometry>
@@ -47,7 +47,7 @@
 
         <link name="${name}_rightBar">
             <visual>
-                <origin xyz="-${bar_length/2} ${0.3*handle_length} 0" rpy="0 1.57 0" />
+                <origin xyz="-${bar_length/2} ${0*handle_length} 0" rpy="0 1.57 0" />
                 <geometry>
                     <cylinder radius="${bar_radius}" length="${bar_length}" />
                 </geometry>
@@ -67,7 +67,7 @@
         <link name="${name}_handle">
 
             <visual>
-                <!-- <origin xyz="-${bar_length} 0 0" rpy="1.57 0 0" /> -->
+                <origin xyz="0 ${0.5*bar_length} 0" rpy="1.57 0 0" />
                 <geometry>
                     <cylinder radius="${handle_radius}" length="${handle_length}" />
                 </geometry>
