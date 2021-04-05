@@ -5,14 +5,15 @@ clc;
 set_matlab_utils_path();
 
 % user = 'antonis';
-% user = 'dimitris';
+% user = 'fotis';
 % user = 'dora';
 % user = 'sotiris';
+% user = 'fanis';
 
 user = 'sotiris';
 
-% filename = ['../data/' user '_power_Dadapt_80kg.bin'];
-filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
+filename = ['../data/' user '_power_Dadapt_80kg.bin'];
+% filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
 % filename = ['../data/' user '_Dmean_80kg.bin'];
 % filename = ['../data/' user '_Dmin_80kg.bin'];
 % filename = ['../data/' user '_Dmax_80kg.bin'];
@@ -134,15 +135,15 @@ fig = plotDamping(Time_data, Damp_data);
 function [fig, ax] = plotPower(Time, Vel_data, F_data)
     
     line_style = '-';
-    pos_color = 'blue';
-    neg_color = 'magenta';
+    pos_color = [0 0.75 0.75];
+    neg_color = [0 0 1];
     legend_prefix = '$D_{pow}: ';
     
 %     line_style = '-';
-%     pos_color = [0 0.8 0.8];
-%     neg_color = [0.49 0.18 0.56]; 
+%     pos_color = [1 0 0];
+%     neg_color = [0.635 0.078 0.184]; 
 %     legend_prefix = '$D_{vel}: ';
-    
+
     n_data = length(Time);
 
     Power = zeros(1, n_data);
@@ -166,7 +167,7 @@ function [fig, ax] = plotPower(Time, Vel_data, F_data)
     % create legend
     plot(nan, nan, 'LineWidth',2, 'Color',pos_color);
     plot(nan, nan, 'LineWidth',2, 'Color',neg_color);
-    legend({[legend_prefix 'E_{h \rightarrow r}$'], [legend_prefix 'E_{r \rightarrow h}$']}, 'interpreter','latex', 'fontsize',15);
+    legend({[legend_prefix 'E^+$'], [legend_prefix 'E^-$']}, 'interpreter','latex', 'fontsize',15);
     
     plot([Time(1) Time(end)], [0 0], 'LineWidth',1, 'Color',[0.1 0.1 0.1], 'LineStyle',':', 'HandleVisibility','off');
     
@@ -175,12 +176,12 @@ function [fig, ax] = plotPower(Time, Vel_data, F_data)
  
     ylabel('Power [$W$]', 'interpreter','latex', 'fontsize',16);
     xlabel('time [$s$]', 'interpreter','latex', 'fontsize',14);
-    
+    box on;
     
     abs_work = sum(abs(Power))*dt;
     work = sum(Power)*dt;
-    pos_work = sum(Pos_Power)*dt;
-    neg_work = sum(Neg_Power)*dt;
+    pos_work = sum(Power(Power>0))*dt;
+    neg_work = sum(Power(Power<0))*dt;
     
     fprintf('====================\n');
     fprintf('abs_work:  %6.3f\n',abs_work);

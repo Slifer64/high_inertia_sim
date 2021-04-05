@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <param name="robot_obj_description" command="$(find xacro)/xacro.py '$(find project_name_)/urdf/lwr4p_obj_temp.xacro'" />
+
+    <node name="my_joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <remap from="robot_description" to="robot_obj_description" />
+      <rosparam>
+          rate: 50
+          use_gui: true
+      </rosparam>
+    </node>
+    <node name="my_robot_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+      <remap from="robot_description" to="robot_obj_description" />
+    </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find project_name_)/rviz/scene_temp.rviz" output="screen" required="true"/>
+
+</launch>
