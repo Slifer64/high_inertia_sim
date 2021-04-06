@@ -2,7 +2,7 @@ clc;
 close all;
 clear;
 
-m = 20;
+m = 80;
 
 w = 0.35; % x
 l = 0.8;  % y

@@ -1,4 +1,4 @@
-clc;
+% clc;
 % close all;
 % clear;
 
@@ -12,7 +12,8 @@ set_matlab_utils_path();
 
 user = 'sotiris';
 
-filename = ['../data/' user '_power_Dadapt_80kg.bin'];
+% filename = ['../data/' user '_power_lambda2_Dadapt_80kg.bin'];
+filename = ['../data/' user '_power_lambda10_Dadapt_80kg.bin'];
 % filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
 % filename = ['../data/' user '_Dmean_80kg.bin'];
 % filename = ['../data/' user '_Dmin_80kg.bin'];
@@ -85,7 +86,13 @@ V_data = Vh1_data;
 
 P_data = zeros(3, n_data);
 Q_data = zeros(4, n_data);
-qLog_data = zeros(3, n_data);
+qLog_data = zeros(3, n_data);%     x0 = 4.4;
+%     x_end = 8.8;
+%     line_style = '-';
+%     pos_color = [0 0.75 0.75];
+%     neg_color = [0 0 1];
+%     legend_prefix = '$D_{pow}: ';
+
 
 R_b_b1 = [ -4.7943e-01  -8.7753e-01  -9.4745e-03;
           8.7758e-01  -4.7940e-01  -5.1759e-03;
@@ -123,7 +130,7 @@ end
 % fig = plotWrench(Time_data, Fh2_data);
 % fig.Position = [730 15 560 420];
 
-% [fig ax] = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
+[fig ax] = plotPower(Time_data, [Vh1_data; Vh2_data], [Fh1_data; Fh2_data]);
 
 fig = plotDamping(Time_data, Damp_data);
 % fig.Position = [1314 268 560 420];
@@ -134,15 +141,36 @@ fig = plotDamping(Time_data, Damp_data);
 
 function [fig, ax] = plotPower(Time, Vel_data, F_data)
     
+    x0 = 0;
+    x_end = Time(end);
     line_style = '-';
     pos_color = [0 0.75 0.75];
     neg_color = [0 0 1];
     legend_prefix = '$D_{pow}: ';
     
+%     x0 = 0;
+%     x_end = Time(end);
 %     line_style = '-';
 %     pos_color = [1 0 0];
 %     neg_color = [0.635 0.078 0.184]; 
 %     legend_prefix = '$D_{vel}: ';
+    
+    
+%     n_data = length(Time);
+%     
+%     for i=1:n_data
+%         if (Time(i) >= x0), break; end  
+%     end
+%     i1 = i;
+%     
+%     for i=n_data:-1:i1
+%         if (Time(i) <= x_end), break; end  
+%     end
+%     i2 = i;
+%     
+%     Time = Time(i1:i2) - Time(i1);
+%     Vel_data = Vel_data(:,i1:i2);
+%     F_data = F_data(:,i1:i2);
 
     n_data = length(Time);
 
@@ -151,6 +179,8 @@ function [fig, ax] = plotPower(Time, Vel_data, F_data)
     for j=1:n_data
         Power(j) = dot(Vel_data(:,j), F_data(:,j) );
     end
+    
+%     Power = Power / max(abs(Power));
     
     Pos_Power = Power;
     Pos_Power(Power<0) = nan;
@@ -332,6 +362,8 @@ function fig = plotDamping(Time, Damp)
     colors = {'red', [0 0.7 0], 'blue'};
 
     fig = figure;
+    
+    Dp(1,:) = Dp(1,:) / max(Dp(1,:));
 
     k = [1 3 5];
     for i=1:3
