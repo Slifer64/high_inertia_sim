@@ -10,18 +10,14 @@
 
 #include <robo_lib/kinematic_chain.h>
 #include <robo_lib/robot_state_publisher.h>
-
-#include <lwr4p/utils.h>
-#include <lwr4p/lwr4p_dynamics.h>
-#include <lwr4p/ur_wrapper.h>
 #include <math_lib/math_lib.h>
 
-#include <lwr4p/ur_wrapper.h>
+#include <project_name_/utils.h>
+#include <project_name_/ur_wrapper.h>
+#include <lwr4p/lwr4p_dynamics.h>
 
 using namespace as64_;
 
-namespace lwr4p_
-{
 
 enum DampAdaptMethod
 {
@@ -217,7 +213,5 @@ private:
 
 };
 
-
-}
 
 #endif // ROBOT_OBJ_SIM_H

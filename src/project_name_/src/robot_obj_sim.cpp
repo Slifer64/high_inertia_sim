@@ -1,4 +1,4 @@
-#include <lwr4p/robot_obj_sim.h>
+#include <project_name_/robot_obj_sim.h>
 
 #include <thread_lib/thread_lib.h>
 #include <io_lib/print_utils.h>
@@ -14,9 +14,6 @@
 // #define CHECK_CTRL_CYCLE_DELAYS
 
 using namespace as64_;
-
-namespace lwr4p_
-{
 
 #define RobotObjSim_fun_ std::string("[RobotObjSim::") + __func__ + "]: "
 
@@ -143,7 +140,7 @@ void RobotObjSim::startSim()
 
   std::thread sim_thread = std::thread(&RobotObjSim::simulationLoop, this);
   int err_code = thr_::setThreadPriority(sim_thread, SCHED_FIFO, 99);
-  if (err_code) std::cerr << "[lwr4p_::RobotObjSim::Robot]: Failed to set thread priority! Reason:\n" << thr_::setThreadPriorErrMsg(err_code) << "\n";
+  if (err_code) std::cerr << "[RobotObjSim::Robot]: Failed to set thread priority! Reason:\n" << thr_::setThreadPriorErrMsg(err_code) << "\n";
   sim_thread.detach();
 }
 
@@ -330,8 +327,8 @@ void RobotObjSim::simulationLoop()
 
       if (damp_adapt_method == VEL_ADAPT)
       {
-        double Dp_ = std::min( D_min(0,0), D_max(0,0)*std::exp(-a_Fp*vp) );
-        double Do_ = std::min( D_min(3,3), D_max(3,3)*std::exp(-a_Fo*vo) );
+        double Dp_ = std::max( D_min(0,0), D_max(0,0)*std::exp(-a_Fp*vp) );
+        double Do_ = std::max( D_min(3,3), D_max(3,3)*std::exp(-a_Fo*vo) );
         arma::vec V_temp = V;
         V_temp.subvec(0,2) *= Dp_;
         V_temp.subvec(3,5) *= Do_;
@@ -517,5 +514,3 @@ bool RobotObjSim::loadSimParams()
     return false;
   }
 }
-
-} // namespace lwr4p_

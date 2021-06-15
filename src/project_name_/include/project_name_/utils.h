@@ -1,5 +1,5 @@
-#ifndef LWR4P_ROBOT_UNITS_H
-#define LWR4P_ROBOT_UNITS_H
+#ifndef HIGH_INERTIA_SIM_UNITS_H
+#define HIGH_INERTIA_SIM_UNITS_H
 
 #include <mutex>
 #include <thread>
@@ -10,8 +10,6 @@
 #include <functional>
 #include <condition_variable>
 
-namespace lwr4p_
-{
 
 inline arma::vec getPositionFromTf(const arma::mat &Tf)
 {
@@ -146,6 +144,4 @@ private:
 };
 
 
-} // namespace lwr4p_
-
-#endif // LWR4P_ROBOT_UNITS_H
+#endif // HIGH_INERTIA_SIM_UNITS_H

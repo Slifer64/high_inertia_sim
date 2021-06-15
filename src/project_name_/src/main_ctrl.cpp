@@ -3,7 +3,7 @@
 #include <cstring>
 #include <ros/ros.h>
 
-#include <lwr4p/robot_obj_sim.h>
+#include <project_name_/robot_obj_sim.h>
 
 #include <gui_lib/utils.h>
 #include <thread_lib/thread_lib.h>
@@ -40,7 +40,7 @@ MainController::MainController()
     read_wrench_from_gui = false;
   }
 
-  robot.reset(new lwr4p_::RobotObjSim(robot_desc));
+  robot.reset(new RobotObjSim(robot_desc));
   robot->publishState();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(500));

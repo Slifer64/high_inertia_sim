@@ -6,36 +6,21 @@ add_definitions(-DLINUX)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-# Set the path containing additional modules like armadillo
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/../install/deps/ ${CMAKE_MODULE_PATH} )
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH} )
-
 find_package(catkin REQUIRED
-  kdl_parser
-  roscpp
-  roslib
-  robo_lib
-  math_lib
-  thread_lib
-  ur_robot
-  io_lib
 )
 
 catkin_package(
   INCLUDE_DIRS include ${catkin_INCLUDE_DIRS}
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS
   DEPENDS
 )
 
 SET(SRC_LIST
-  src/robot_obj_sim.cpp
   src/lwr4p_dynamics.cpp
-  src/ur_wrapper.cpp
 )
 
 include_directories(
   include
-  /usr/include/eigen3
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -51,10 +36,5 @@ add_dependencies(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   pthread
   armadillo
-  robo_lib
-  math_lib
-  thread_lib
-  ur_robot
-  io_lib
   ${catkin_LIBRARIES}
 )

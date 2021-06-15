@@ -41,6 +41,7 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
   robot_state_publisher
   lwr4p
+  ur_robot
 )
 
 catkin_package(
@@ -61,9 +62,10 @@ set(SRC_LIST
   include/${PROJECT_NAME}/gui/wrench_ctrl_gui.cpp
   include/${PROJECT_NAME}/gui/main_gui.cpp
 
-  include/${PROJECT_NAME}/main.cpp
-  include/${PROJECT_NAME}/main_ctrl.cpp
-
+  src/main.cpp
+  src/main_ctrl.cpp
+  src/robot_obj_sim.cpp
+  src/ur_wrapper.cpp
 )
 
 add_executable(${PROJECT_NAME}
@@ -89,4 +91,5 @@ target_link_libraries(${PROJECT_NAME}
   ${Qt_LIBRARIES}
   pthread
   lwr4p
+  ur_robot
 )

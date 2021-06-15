@@ -3,7 +3,7 @@
 #include <cstring>
 #include <ros/ros.h>
 
-#include <lwr4p/robot_obj_sim.h>
+#include <project_name_/robot_obj_sim.h>
 
 #include <gui_lib/utils.h>
 #include <thread_lib/thread_lib.h>
@@ -44,7 +44,7 @@ public:
 
   bool comp_load;
 
-  std::shared_ptr<lwr4p_::RobotObjSim> robot;
+  std::shared_ptr<RobotObjSim> robot;
 
   thr_::Semaphore gui_created_sem;
 };
