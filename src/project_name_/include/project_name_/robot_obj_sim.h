@@ -97,9 +97,10 @@ public:
 
   bool print_to_console;
 
+  std::function<arma::vec()> get_lh_wrench_;
+  std::function<arma::vec()> get_rh_wrench_;
+
 private:
-
-
 
   enum DampAdaptMethod damp_adapt_method;
 
@@ -109,9 +110,6 @@ private:
   arma::mat log_Fh1;
   arma::mat log_Fh2;
   arma::mat log_Damp;
-
-  std::function<arma::vec()> get_lh_wrench_;
-  std::function<arma::vec()> get_rh_wrench_;
 
   std::function<arma::vec()> get_ctrl_signal_;
 

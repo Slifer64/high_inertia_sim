@@ -37,6 +37,9 @@ public:
 
   void setLogging(bool set);
 
+  arma::vec getLeftHandleWrench() const { return robot->get_lh_wrench_(); }
+  arma::vec getRightHandleWrench() const { return robot->get_rh_wrench_(); }
+
   std::string default_data_path;
 
   bool gui_finished;

@@ -34,6 +34,7 @@ MainWindow::MainWindow(MainController *main_ctrl, QWidget *parent) : QMainWindow
   main_layout->addWidget(createModeFrame());
   main_layout->addWidget(createUtilsFrame());
 
+  createActions();
   createMenu();
 
   QObject::connect( this, SIGNAL(modeChangedSignal(const QString &)), this, SLOT(modeChangedSlot(const QString &)) );
@@ -144,6 +145,43 @@ QFrame *MainWindow::createModeFrame()
   return robot_mode_frame;
 }
 
+QFrame *MainWindow::createDampFrame()
+{
+  // QLabel *Dmin_lb, *Dmax_lb;
+  // QLineEdit *Dmin_le;
+  //
+  // QComboBox *damp_adapt_method_cmbox;
+  // damp_adapt_method_cmbox->setFont(font3);
+  // damp_adapt_method_cmbox->addItem("power");
+  // damp_adapt_method_cmbox->addItem("vel");
+  // damp_adapt_method_cmbox->addItem("force");
+  // damp_adapt_method_cmbox->addItem("min");
+  // damp_adapt_method_cmbox->addItem("max");
+  // damp_adapt_method_cmbox->addItem("mean");
+  // QObject::connect( damp_adapt_method_cmbox, &QComboBox::currentTextChanged, this, [this](const QString &method)
+  // {
+  //
+  // });
+  // damp_adapt_method_cmbox->setCurrentText("power");
+  // emit damp_adapt_method_cmbox->currentTextChanged("power");
+}
+
+void MainWindow::createActions()
+{
+  gui_::ViewWrenchDialog *view_lh_wrench_dialog = new gui_::ViewWrenchDialog([this](){ return main_ctrl->getLeftHandleWrench(); }, 0, this);
+  view_lh_wrench_dialog->setTitle("Left Handle wrench");
+  view_lh_wrench_act = new QAction(tr("View left handle wrench"), this);
+  view_lh_wrench_act->setStatusTip(tr("Opens a window displaying the wrench measured from the left handle."));
+  QObject::connect( view_lh_wrench_act, &QAction::triggered, this, [view_lh_wrench_dialog](){ view_lh_wrench_dialog->launch(); } );
+
+  // QAction *view_rh_wrench_act;
+  gui_::ViewWrenchDialog *view_rh_wrench_dialog = new gui_::ViewWrenchDialog([this](){ return main_ctrl->getRightHandleWrench(); }, 0, this);
+  view_rh_wrench_dialog->setTitle("Right Handle wrench");
+  view_rh_wrench_act = new QAction(tr("View right handle wrench"), this);
+  view_rh_wrench_act->setStatusTip(tr("Opens a window displaying the wrench measured from the right handle."));
+  QObject::connect( view_rh_wrench_act, &QAction::triggered, this, [view_rh_wrench_dialog](){ view_rh_wrench_dialog->launch(); } );
+}
+
 void MainWindow::createMenu()
 {
   // =======   Create menus   ==========
@@ -164,7 +202,8 @@ void MainWindow::createMenu()
   QMenu *view_menu = menu_bar->addMenu(tr("&View"));
   // view_menu->addAction(view_joints_act);
   // view_menu->addAction(view_pose_act);
-  // view_menu->addAction(view_wrench_act);
+  view_menu->addAction(view_lh_wrench_act);
+  view_menu->addAction(view_rh_wrench_act);
   // view_menu->addSeparator();
   // view_menu->addAction(train_win->plot_train_data_act);
   // view_menu->addAction(train_win->plot_demo_sim_data_act);

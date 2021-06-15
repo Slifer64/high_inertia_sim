@@ -8,7 +8,10 @@
 #include <QMenu>
 #include <QPushButton>
 #include <QLabel>
+#include <QComboBox>
+#include <QCheckBox>
 #include <QAction>
+#include <QLineEdit>
 #include <QWidget>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -23,7 +26,9 @@
 #include <map>
 #include <functional>
 
-#include <project_name_/gui/wrench_ctrl_gui.h>
+#include <gui_lib/view_wrench_dialog.h>
+
+using namespace as64_;
 
 class MainController; // forward decleration
 
@@ -49,6 +54,7 @@ public:
 
   QFrame *createModeFrame();
   QFrame *createUtilsFrame();
+  QFrame *createDampFrame();
 
   void createMenu();
 
@@ -61,6 +67,11 @@ public:
   QPushButton *bias_ft_sensors_btn;
   QCheckBox *log_data_ckbox;
   QPushButton *save_log_data;
+
+  // Actions
+  QAction *view_lh_wrench_act;
+  QAction *view_rh_wrench_act;
+  void createActions();
 
   QWidget *central_widget;
   QStatusBar *status_bar;

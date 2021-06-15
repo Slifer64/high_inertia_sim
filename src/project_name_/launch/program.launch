@@ -50,7 +50,7 @@
           use_gui: true
           read_wrench_from_gui: false
 
-          use_ur_robot: true
+          use_ur_robot: false
 
           ur_robot1_q0: [1.8, -1.05, 1.3, -1.85, -1.56, -2.78] # left robot
           ur_robot2_q0: [-1.8, -2.09, -1.3, -1.31, 1.6, -3.49] # right robot

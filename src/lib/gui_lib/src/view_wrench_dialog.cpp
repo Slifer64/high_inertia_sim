@@ -14,8 +14,10 @@ ViewWrenchDialog::ViewWrenchDialog(std::function<arma::vec()> readWrench, std::f
 
   up_rate_ms_ = 100;
 
+  this->get_wrench = std::bind(&ViewWrenchDialog::getBaseWrench, this);
+
   this->read_wrench = readWrench;
-  this->get_rel_rot = getRelRot;
+  if (getRelRot) this->get_rel_rot = getRelRot;
 
   this->setWindowTitle("Tool wrench");
 
@@ -38,22 +40,27 @@ ViewWrenchDialog::ViewWrenchDialog(std::function<arma::vec()> readWrench, std::f
   ty_le = createLineEdit();
   tz_le = createLineEdit();
 
+  QHBoxLayout *ref_frame_layout;
+  if (getRelRot)
+  {
+    QLabel *ref_frame_lb = new QLabel("Frame:");
+    ref_frame_lb->setStyleSheet("font: 75 14pt;");
+    ref_frame_lb->setAlignment(Qt::AlignCenter);
+    ref_frame_cmbx = new QComboBox;
+    ref_frame_cmbx->addItem("base");
+    ref_frame_cmbx->addItem("sensor");
+    ref_frame_cmbx->setMaximumWidth(90);
+    //ref_frame_cmbx->setCurrentIndex(0); // degrees
+    QObject::connect(ref_frame_cmbx, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(refFrameChangedSlot(const QString &)));
+    emit ref_frame_cmbx->currentIndexChanged("base");
 
-  QLabel *ref_frame_lb = new QLabel("Frame:");
-  ref_frame_lb->setStyleSheet("font: 75 14pt;");
-  ref_frame_lb->setAlignment(Qt::AlignCenter);
-  ref_frame_cmbx = new QComboBox;
-  ref_frame_cmbx->addItem("base");
-  ref_frame_cmbx->addItem("sensor");
-  ref_frame_cmbx->setMaximumWidth(90);
-  //ref_frame_cmbx->setCurrentIndex(0); // degrees
-  QObject::connect(ref_frame_cmbx, SIGNAL(currentIndexChanged(const QString &)), this, SLOT(refFrameChangedSlot(const QString &)));
-  emit ref_frame_cmbx->currentIndexChanged("base");
+    ref_frame_layout = new QHBoxLayout;
+    ref_frame_layout->addWidget(ref_frame_lb);
+    ref_frame_layout->addWidget(ref_frame_cmbx);
+    ref_frame_layout->addStretch(0);
+  }
 
-  QHBoxLayout *ref_frame_layout = new QHBoxLayout;
-  ref_frame_layout->addWidget(ref_frame_lb);
-  ref_frame_layout->addWidget(ref_frame_cmbx);
-  ref_frame_layout->addStretch(0);
+
 
   QGridLayout *wrench_layout = new QGridLayout;
   // main_layout->setSizeConstraint(QLayout::SetFixedSize);
@@ -73,7 +80,7 @@ ViewWrenchDialog::ViewWrenchDialog(std::function<arma::vec()> readWrench, std::f
   wrench_layout->addWidget(t_label,3,4);
 
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  main_layout->addLayout(ref_frame_layout);
+  if (getRelRot) main_layout->addLayout(ref_frame_layout);
   main_layout->addLayout(wrench_layout);
 
   Qt::ConnectionType connect_type = Qt::AutoConnection;

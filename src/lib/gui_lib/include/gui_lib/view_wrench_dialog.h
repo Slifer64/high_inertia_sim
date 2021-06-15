@@ -27,7 +27,7 @@ class ViewWrenchDialog : public QDialog
   Q_OBJECT
 
 public:
-  ViewWrenchDialog(std::function<arma::vec()> readWrench, std::function<arma::mat()> getRelRot, QWidget *parent = 0);
+  ViewWrenchDialog(std::function<arma::vec()> readWrench, std::function<arma::mat()> getRelRot=0, QWidget *parent = 0);
   ~ViewWrenchDialog();
 
   void setTitle(const std::string &title_) { this->setWindowTitle(title_.c_str()); }
