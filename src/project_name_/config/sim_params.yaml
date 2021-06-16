@@ -14,35 +14,43 @@ a_Do_f: 2
 a_Dp_v: 15
 a_Do_v: 15
 
-a_Dp_p: 2
-a_Do_p: 2
 
 # ==========  1: Power - adapt  ==========
-damp_adapt_method: "power" # {"force", "vel", "power"}
-D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
-D_max: [ 350, 350, 350,    10, 10, 10 ]
+# damp_adapt_method: "power" # {"force", "vel", "power"}
+# D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
+# D_max: [ 350, 350, 350,    10, 10, 10 ]
+# a_Dp_p: 2
+# a_Do_p: 2
 
 
-# # ==========  2: vel_Dadapt   ==========
+# ==========  2: Power - adapt  ==========
+# damp_adapt_method: "power" # {"force", "vel", "power"}
+# D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
+# D_max: [ 350, 350, 350,    10, 10, 10 ]
+# a_Dp_p: 10
+# a_Do_p: 10
+
+# # ==========  3: vel_Dadapt   ==========
 # damp_adapt_method: "vel" #
-# D_min: [ 30, 30, 30,    0.2, 0.2, 0.2 ]
+# D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
 # D_max: [ 350, 350, 350,    10, 10, 10 ]
 
+# # ==========  4: Dmean   ==========
+# damp_adapt_method: "force"
+# D_min: [ 185, 185, 185,    5.1, 5.1, 5.1 ]
+# D_max: [ 185, 185, 185,    5.1, 5.1, 5.1 ]
 
-# # ==========  3: Dmin   ==========
-# use_force: true
-# D_min: [ 30, 30, 30,    0.2, 0.2, 0.2 ]
-# D_max: [ 30, 30, 30,    0.2, 0.2, 0.2 ]
+# # ==========  5: Dmin   ==========
+# damp_adapt_method: "force"
+# D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
+# D_max: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
 
 
-# # ==========  4: Dmax   ==========
-# use_force: true
+# # ==========  6: Dmax   ==========
+# damp_adapt_method: "force"
 # D_min: [ 350, 350, 350,    10, 10, 10 ]
 # D_max: [ 350, 350, 350,    10, 10, 10 ]
 
-# # ==========  5: Dmin   ==========
-# use_force: true
-# D_min: [ 185, 185, 185,    5.1, 5.1, 5.1 ]
-# D_max: [ 185, 185, 185,    5.1, 5.1, 5.1 ]
+
 
 # damp_adapt_method: "force" #

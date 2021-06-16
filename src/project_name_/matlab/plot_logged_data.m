@@ -4,20 +4,14 @@
 
 set_matlab_utils_path();
 
-% user = 'antonis';
-% user = 'fotis';
-% user = 'dora';
-% user = 'sotiris';
-% user = 'fanis';
+subj_id = 1;
 
-user = 'sotiris';
-
-% filename = ['../data/' user '_power_lambda2_Dadapt_80kg.bin'];
-filename = ['../data/' user '_power_lambda10_Dadapt_80kg.bin'];
-% filename = ['../data/' user '_vel_Dadapt_80kg.bin'];
-% filename = ['../data/' user '_Dmean_80kg.bin'];
-% filename = ['../data/' user '_Dmin_80kg.bin'];
-% filename = ['../data/' user '_Dmax_80kg.bin'];
+filename = ['../data/s' num2str(subj_id) '_power_2.bin'];
+% filename = ['../data/s' num2str(subj_id) '_power_10.bin'];
+% filename = ['../data/s' num2str(subj_id) '_vel.bin'];
+% filename = ['../data/s' num2str(subj_id) '_mean.bin'];
+% filename = ['../data/s' num2str(subj_id) '_min.bin'];
+% filename = ['../data/s' num2str(subj_id) '_max.bin'];
 
 
 % filename = '../data/data.bin';
