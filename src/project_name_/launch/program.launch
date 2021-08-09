@@ -41,7 +41,7 @@
 
           Ts: 0.004 # ms, time step for the simulation
 
-          ctrl_cycle: 1 # control cycle as a multiple of Ts
+          ctrl_cycle: 1 # DEPRECATED! ... control cycle as a multiple of Ts
 
           use_lwr_dynamics: false
 

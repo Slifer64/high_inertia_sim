@@ -1,5 +1,7 @@
 
 
+ctrl_delay: 25 # multiple of ctrl cycle, 0 for no delay
+
 mo: 80
 obj_w: 0.35 # x
 obj_l: 0.8 # y

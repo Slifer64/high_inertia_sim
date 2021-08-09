@@ -5,6 +5,7 @@
 #include <io_lib/file_io.h>
 
 #include <exception>
+#include <queue>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -51,7 +52,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   if (!nh.getParam("Ts",Ts)) throw std::runtime_error("Failed to load param \"Ts\"...\n");
   if (!nh.getParam("ctrl_cycle",ctrl_cycle)) throw std::runtime_error("Failed to load param \"ctrl_cycle\"...\n");
 
-  if (!nh.getParam("use_lwr_dynamics",use_lwr_dynamics)) use_lwr_dynamics=false;
+   if (!nh.getParam("use_lwr_dynamics",use_lwr_dynamics)) use_lwr_dynamics=false;
 
   u = arma::vec().zeros(6);
 
@@ -223,6 +224,13 @@ void RobotObjSim::simulationLoop()
 
   assignJointsPosition(getJointsPosition());
 
+  arma::vec p_cur = p;
+  arma::vec Q_cur = Q;
+
+  int buff_size = ctrl_delay + 1;
+  std::queue<arma::vec> cmd_buff;
+  for (int i=0; i<buff_size; i++) cmd_buff.push(arma::vec().zeros(6));
+
   arma::mat D_plus = D_max - D_min;
 
   double Fp_norm = 0;
@@ -363,8 +371,16 @@ void RobotObjSim::simulationLoop()
     dp += ddp*Ts;
     vRot += dvRot*Ts;
 
-    arma::vec V_h1 = twistMat(-r_rh1)*arma::join_vert(dp, vRot);
-    arma::vec V_h2 = twistMat(-r_rh2)*arma::join_vert(dp, vRot);
+    arma::vec V_cmd = arma::join_vert(dp, vRot);
+    cmd_buff.push(V_cmd);
+    arma::vec V_cur_cmd = cmd_buff.front();
+    cmd_buff.pop();
+
+    p_cur += V_cur_cmd.subvec(0,2)*Ts;
+    Q_cur = math_::quatProd(math_::quatExp(V_cur_cmd.subvec(3,5)*Ts),Q_cur);
+
+    arma::vec V_h1 = twistMat(-r_rh1)*V_cur_cmd;
+    arma::vec V_h2 = twistMat(-r_rh2)*V_cur_cmd;
 
     if ( !send_feedback(arma::join_vert(V_h1, V_h2)) )
     {
@@ -395,7 +411,7 @@ void RobotObjSim::simulationLoop()
     // joint_pos += q_dot*Ts;
 
     arma::mat Pose = arma::mat().eye(4,4);
-    Pose.submat(0,3,2,3) = p;
+    Pose.submat(0,3,2,3) = p_cur;
     Pose.submat(0,0,2,2) = math_::quat2rotm(Q);
 //
     bool found_sol = false;
@@ -462,6 +478,8 @@ bool RobotObjSim::loadSimParams()
     io_::XmlParser parser(filename);
 
     arma::rowvec Jo_vec, M_vec, D_min_vec, D_max_vec;
+
+    if (!parser.getParam("ctrl_delay", ctrl_delay)) throw std::runtime_error("Failed to read param \"ctrl_delay\"...");
 
     if (!parser.getParam("mo", mo)) throw std::runtime_error("Failed to read param \"mo\"...");
     if (!parser.getParam("Jo", Jo_vec))

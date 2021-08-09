@@ -190,6 +190,8 @@ private:
 
   int ctrl_cycle;
 
+  int ctrl_delay;
+
   // arma::mat M; // robot inertia matrix
   // arma::mat D; // robot damping
   arma::vec u; // input wrench
