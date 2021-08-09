@@ -5,6 +5,7 @@
 #include <io_lib/file_io.h>
 
 #include <exception>
+#include <queue>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -65,7 +66,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   wait_next_cycle = [this]()
   {
     static bool initialized  = false;
-    static Timer timer;
+    static Timer timer; 
     static double cycle_ns = Ts*1e9;
 
     if (!initialized)
@@ -82,6 +83,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
   };
 
 
+  // Publish simulated lwr robot state
   double pub_rate_ms=33;
   state_pub.reset(new robo_::RobotStatePublisher(robot_desc_param, base_ee_chain->joint_names, std::bind(&RobotObjSim::getJointsPosition, this), pub_rate_ms));
 
@@ -218,6 +220,10 @@ void RobotObjSim::simulationLoop()
 
   print_to_console = false;
 
+  int buff_size = 5;
+  std::queue<arma::vec> cmd_buffer;
+  for (int i=0; i<buff_size; i++) cmd_buffer.push(arma::vec().zeros(6,1));
+
   while (run_sim_)
   {
     count++;
@@ -243,28 +249,34 @@ void RobotObjSim::simulationLoop()
     arma::vec r_rh2 = R_br*rh_.p;
     arma::mat G_rh2 = wrenchMat(r_rh2);
 
-    arma::vec r_ro = R_br*obj_.p;
+    arma::vec r_ro = R_br*obj_.p; // express the vector from 'r' to 'o' w.r.t. the lwr-base frame 'b'.
 
-    arma::mat G_ro = wrenchMat(r_ro);
+    // Grasp and twist matrices, expressed in the lwr-base frame 'b'.
+    arma::mat G_ro = wrenchMat(r_ro); // grasp matrix from lwr end-effector 'r' to the object CoM 'o'
     arma::mat Gamma_or = twistMat(-r_ro);
 
-    arma::mat Jo = R_bo * Jo_o * R_bo.t();
-
+    // Here, Mo_o and Jo are a portion of the actual plants inertia.
+    // They are expressed in the frame defined by the object's CoM and principal axes.
+    // We then tranfer the inertia to the lwr robot's end-effector.
     arma::mat Mo = Mo_o; // Mo'
+    arma::mat Jo = R_bo * Jo_o * R_bo.t();
     Mo.submat(3,3,5,5) = Jo;
     arma::mat Mo2 = Gamma_or.t() * Mo * Gamma_or;
 
+    // Transfer the object's coriolis in the lwr robot's end-effector.
     arma::vec temp(6);
     temp.subvec(0,2) = mo*( arma::dot(vRot,vRot)*r_ro - arma::dot(vRot,r_ro)*vRot ); // arma::cross(vRot, arma::cross(r_ro,vRot) );
     temp.subvec(3,5) = arma::cross(vRot, Jo*vRot);
     arma::mat Co2 = G_ro*temp;
 
-    F_h1 = get_lh_wrench_(); //F_lh;
-    F_h2 = get_rh_wrench_(); //F_rh;
+    F_h1 = get_lh_wrench_(); // wrench of the left ur robot at its handle 'h1', expressed in the lwr-base frame.
+    F_h2 = get_rh_wrench_(); // wrench of the right ur robot at its handle 'h2', expressed in the lwr-base frame.
 
-    arma::vec F_rh1 = G_rh1*F_h1;
-    arma::vec F_rh2 = G_rh2*F_h2;
+    // Tranfer the wrenches from the ur-handles to the lwr end-effector. All quantities are expressed in the lwr base frame.
+    arma::vec F_rh1 = G_rh1*F_h1; // tranfer the wrench from the the handle 'h1' of the left robot, to the end-effector 'r' of the lwr robot
+    arma::vec F_rh2 = G_rh2*F_h2; // tranfer the wrench from the the handle 'h2' of the right robot, to the end-effector 'r' of the lwr robot
 
+    // ===========  print some values in the terminal  ===========
     if (count == 200)
     {
       count = 0;
@@ -337,9 +349,12 @@ void RobotObjSim::simulationLoop()
 
     }
 
-    u = get_ctrl_signal_();
+    // u = get_ctrl_signal_();
+    // arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
 
-    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
+    // dynamics of the lwr end-effector 'r' expressed in the lwr-base frame 'b'.
+    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
+
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
 
@@ -350,8 +365,13 @@ void RobotObjSim::simulationLoop()
     dp += ddp*Ts;
     vRot += dvRot*Ts;
 
-    arma::vec V_h1 = twistMat(-r_rh1)*arma::join_vert(dp, vRot);
-    arma::vec V_h2 = twistMat(-r_rh2)*arma::join_vert(dp, vRot);
+    arma::vec V_cmd = arma::join_vert(dp, vRot);
+    cmd_buffer.push(V_cmd);
+    arma::vec V_cmd_current = cmd_buffer.front();
+    cmd_buffer.pop();
+
+    arma::vec V_h1 = twistMat(-r_rh1)*V_cmd_current;
+    arma::vec V_h2 = twistMat(-r_rh2)*V_cmd_current;
 
     if ( !send_feedback(arma::join_vert(V_h1, V_h2)) )
     {
@@ -359,6 +379,7 @@ void RobotObjSim::simulationLoop()
       break;
     }
 
+    // ===========  data logging  ===========
     if (log_on)
     {
       log_Time = arma::join_horiz(log_Time, arma::vec({t}) );
@@ -371,6 +392,10 @@ void RobotObjSim::simulationLoop()
       log_Damp = arma::join_horiz(log_Damp, arma::diagvec(D2) );
     }
 
+    // ==================================================================
+    // ===========  Update simulated lwr robot visualization  ===========
+    // ==================================================================
+
     // update robot joints pos;
     // arma::mat J = base_ee_chain->getJacobian(getJointsPosition());
     // arma::vec p_current = base_ee_chain->getTaskPosition(getJointsPosition());
@@ -381,6 +406,9 @@ void RobotObjSim::simulationLoop()
     // arma::vec q_dot = arma::solve(J, V_click);
     // joint_pos += q_dot*Ts;
 
+    // Find the inverse kinematic solution for the current pose, stored in 'p', 'Q'
+    // assign the solution to 'joint_pos' which is returned by 'getJointsPosition()'
+    // which is used in the 'state_pub' to read the current joints and publish the lwr robot states to the 'tf/'
     arma::mat Pose = arma::mat().eye(4,4);
     Pose.submat(0,3,2,3) = p;
     Pose.submat(0,0,2,2) = math_::quat2rotm(Q);
@@ -392,8 +420,11 @@ void RobotObjSim::simulationLoop()
     q_dot = (joint_pos - q_prev)/Ts;
     q_prev = joint_pos;
 
+    // --------------------------------------------------------------------
+
     // clock sync
     wait_next_cycle();
+
     // check delays
     #ifdef CHECK_CTRL_CYCLE_DELAYS
       double tc = timer.elapsedNanoSec();

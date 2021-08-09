@@ -102,12 +102,13 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
 
   arma::mat T_b2_h2 = arma::inv(T_b1_b2) * T_b1_h1 * T_h1_h2;
 
-  T_b_b1 = T_b_h1 * arma::inv(T_b1_h1);
-  T_b_b2 = T_b_h2 * arma::inv(T_b2_h2);
+  T_b_b1 = T_b_h1 * arma::inv(T_b1_h1); // transform from lwr-base to ur1-base
+  T_b_b2 = T_b_h2 * arma::inv(T_b2_h2); // transform from lwr-base to ur2-base
 
   // std::cerr << "\nT_b_b1 = \n" << T_b_b1 << "\n\n";
   // exit(0);
 
+  // wrench transform, to express the wrenches w.r.t. the lwr-base frame
   setWrenchRotTransform(T_b_b1.submat(0,0,2,2), 0);
   setWrenchRotTransform(T_b_b2.submat(0,0,2,2), 1);
 
@@ -184,6 +185,9 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
 
   R_b1_b = T_b_b1.submat(0,0,2,2).t();
   R_b2_b = T_b_b2.submat(0,0,2,2).t();
+
+
+  timer.start();
 }
 
 Ur_Wrapper::~Ur_Wrapper()
@@ -271,8 +275,16 @@ arma::vec Ur_Wrapper::calcVelocity_with_click(const arma::vec &V, int i)
 
 void Ur_Wrapper::waitNextCycle()
 {
+  static double cycle_ns = 4*1e6; // 4 ms
+
   robot[0]->update();
   robot[1]->update();
+
+  double elaps_t = timer.elapsedNanoSec();
+
+  unsigned long long sleep_t = (cycle_ns - elaps_t);
+  if (sleep_t > 0) std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_t));
+  timer.start();
 }
 
 void Ur_Wrapper::setCartVelCtrl()
@@ -297,7 +309,7 @@ arma::vec Ur_Wrapper::getWrench(int robot_ind)
   Fext = a_f*Fext + (1-a_f)*Fext_prev;
   Fext_prev = Fext;
 
-  // express the wrench w.r.t. new frame
+  // express the wrench in the lwr-base frame
   Fext.subvec(0,2) = R_[robot_ind]*Fext.subvec(0,2);
   Fext.subvec(3,5) = R_[robot_ind]*Fext.subvec(3,5);
 

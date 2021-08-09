@@ -10,6 +10,8 @@
 
 #include <ur_robot/robot.h>
 
+#include <project_name_/utils.h>
+
 class Ur_Wrapper
 {
 public:
@@ -26,6 +28,9 @@ public:
 
   void setCartTrajectory(const arma::vec &poseT, ur_::Robot *robot_);
 
+  /** Returns the wrench of the ur robot defined by 'robot_ind', expressed in the lwr-base frame.
+   *  @param[in] robot_ind: index of the ur robot (0:left, 1:right)
+   */ 
   arma::vec getWrench(int robot_ind);
 
   arma::mat getRotm(int robot_ind) const;
@@ -42,6 +47,8 @@ public:
   void setIdleMode();
 
 private:
+
+  Timer timer; 
 
   bool throwError(const std::string &msg);
 
