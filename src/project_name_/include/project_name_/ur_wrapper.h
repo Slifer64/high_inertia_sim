@@ -13,7 +13,7 @@
 class Ur_Wrapper
 {
 public:
-  Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2);
+  Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2, double ctrl_cycle);
   ~Ur_Wrapper();
 
   void setCartVelCtrl();

@@ -82,7 +82,7 @@ arma::vec quatlogDot2rotVel(const arma::vec &Qlog_dot, const arma::vec &Q)
 
 // ==================================================================
 
-Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2)
+Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const arma::mat &T_b_h2, double ctrl_cycle)
 {
   R_.resize(2);
   R_[0] = R_[1] = arma::mat().eye(4,4);
@@ -114,7 +114,7 @@ Ur_Wrapper::Ur_Wrapper(const arma::mat &T_lh_rh, const arma::mat &T_b_h1, const 
   T_b1_h1_0 = T_b1_h1;
   T_b2_h2_0 = T_b2_h2;
 
-  Ts = 0.002;
+  Ts = ctrl_cycle;
   Fext_prev = arma::vec().zeros(6);
 
   // std::cout << "T_b1_b2 = \n" << T_b1_b2 << "\n";
@@ -384,7 +384,7 @@ void Ur_Wrapper::setJointsTrajectory(const arma::vec &qT, ur_::Robot *robot_)
       return;
     }
 
-    t += Ts;
+    t += 0.002;
     robot_->setJointsPosition(ur_wrap_::get5thOrder(t, q0, qT, duration).col(0));
     robot_->update();
   }
@@ -435,7 +435,7 @@ void Ur_Wrapper::setCartTrajectory(const arma::vec &poseT, ur_::Robot *robot_)
       return;
     }
 
-    t += Ts;
+    t += 0.002;
 
     arma::mat Pos_ref = ur_wrap_::get5thOrder(t, p0, pT, duration);
     arma::vec pref = Pos_ref.col(0);

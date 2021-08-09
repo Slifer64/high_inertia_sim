@@ -39,7 +39,7 @@
 
           q0: [0.5, -0.5, 0, 1.0, 0, -1.63, 0]
 
-          Ts: 0.002 # ms, time step for the simulation
+          Ts: 0.004 # ms, time step for the simulation
 
           ctrl_cycle: 1 # control cycle as a multiple of Ts
 

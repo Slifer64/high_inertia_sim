@@ -12,7 +12,7 @@
 #include <io_lib/xml_parser.h>
 
 // #define CHECK_CTRL_CYCLE_DELAYS
-
+ 
 using namespace as64_;
 
 #define RobotObjSim_fun_ std::string("[RobotObjSim::") + __func__ + "]: "
@@ -98,7 +98,7 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
   if (use_ur_robot)
   {
-    ur_wrap.reset(new Ur_Wrapper(get_transform_lh_rh(), T_b_h1, T_b_h2));
+    ur_wrap.reset(new Ur_Wrapper(get_transform_lh_rh(), T_b_h1, T_b_h2, Ts));
 
     // arma::mat R_b_lh = getBaseLeftHandleRotm();
     // arma::mat R_b1_lh = ur_wrap->getRotm(0);
@@ -115,7 +115,17 @@ RobotObjSim::RobotObjSim(std::string robot_desc_param)
 
     send_feedback = [this](const arma::vec &V){ return this->ur_wrap->setVelocity(V); };
 
-    wait_next_cycle = [this](){ this->ur_wrap->waitNextCycle(); };
+    timer.start();
+    wait_next_cycle = [this]()
+    { 
+      static double cycle_ns = Ts*1e9;
+
+      this->ur_wrap->waitNextCycle();
+
+      unsigned long long sleep_t = (cycle_ns - timer.elapsedNanoSec());
+      if (sleep_t > 0) std::this_thread::sleep_for(std::chrono::nanoseconds(sleep_t));
+      timer.start();
+    };
   }
 }
 
@@ -210,6 +220,8 @@ void RobotObjSim::simulationLoop()
   if (log_on) clearLogData();
 
   double t = 0;
+
+  assignJointsPosition(getJointsPosition());
 
   arma::mat D_plus = D_max - D_min;
 
@@ -337,9 +349,10 @@ void RobotObjSim::simulationLoop()
 
     }
 
-    u = get_ctrl_signal_();
+    // u = get_ctrl_signal_();
+    // arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
 
-    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
+    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
 

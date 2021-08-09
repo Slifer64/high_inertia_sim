@@ -102,6 +102,8 @@ public:
 
 private:
 
+  Timer timer;
+
   enum DampAdaptMethod damp_adapt_method;
 
   arma::rowvec log_Time;
