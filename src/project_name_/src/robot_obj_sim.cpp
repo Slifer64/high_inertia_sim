@@ -213,6 +213,13 @@ void RobotObjSim::simulationLoop()
 
   double t = 0;
 
+  // assignJointsPosition(getJointsPosition());
+  dp = ddp = arma::vec().zeros(3);
+  vRot = dvRot = arma::vec().zeros(3);
+
+  arma::vec p_cur = p;
+  arma::vec Q_cur = Q;
+
   arma::mat D_plus = D_max - D_min;
 
   double Fp_norm = 0;
@@ -220,7 +227,7 @@ void RobotObjSim::simulationLoop()
 
   print_to_console = false;
 
-  int buff_size = 5;
+  int buff_size = 1;
   std::queue<arma::vec> cmd_buffer;
   for (int i=0; i<buff_size; i++) cmd_buffer.push(arma::vec().zeros(6,1));
 
@@ -350,10 +357,10 @@ void RobotObjSim::simulationLoop()
     }
 
     // u = get_ctrl_signal_();
-    // arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
+    // arma::vec dV = arma::solve( Mr + Mo2, ( - Co2 - Cr + u + G_ro*Fo + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
 
     // dynamics of the lwr end-effector 'r' expressed in the lwr-base frame 'b'.
-    arma::vec dV = solve( Mr + Mo2, ( - Co2 - Cr + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
+    arma::vec dV = arma::solve( Mr + Mo2, ( - Co2 - Cr + F_rh1 + F_rh2 ) , arma::solve_opts::likely_sympd );
 
     ddp = dV.subvec(0,2);
     dvRot = dV.subvec(3,5);
@@ -378,6 +385,9 @@ void RobotObjSim::simulationLoop()
       run_sim_ = false;
       break;
     }
+
+    p_cur += V_cmd_current.subvec(0,2)*Ts;
+    Q_cur = math_::quatProd(math_::quatExp(V_cmd_current.subvec(3,5)*Ts),Q_cur);
 
     // ===========  data logging  ===========
     if (log_on)
@@ -410,8 +420,8 @@ void RobotObjSim::simulationLoop()
     // assign the solution to 'joint_pos' which is returned by 'getJointsPosition()'
     // which is used in the 'state_pub' to read the current joints and publish the lwr robot states to the 'tf/'
     arma::mat Pose = arma::mat().eye(4,4);
-    Pose.submat(0,3,2,3) = p;
-    Pose.submat(0,0,2,2) = math_::quat2rotm(Q);
+    Pose.submat(0,3,2,3) = p_cur;
+    Pose.submat(0,0,2,2) = math_::quat2rotm(Q_cur);
 //
     bool found_sol = false;
     joint_pos = base_ee_chain->getJointsPosition(Pose, getJointsPosition(), &found_sol);
