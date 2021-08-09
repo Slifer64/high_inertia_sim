@@ -24,11 +24,11 @@ a_Do_v: 15
 
 
 # ==========  2: Power - adapt  ==========
-# damp_adapt_method: "power" # {"force", "vel", "power"}
-# D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
-# D_max: [ 350, 350, 350,    10, 10, 10 ]
-# a_Dp_p: 10
-# a_Do_p: 10
+damp_adapt_method: "power" # {"force", "vel", "power"}
+D_min: [ 20, 20, 20,    0.2, 0.2, 0.2 ]
+D_max: [ 350, 350, 350,    10, 10, 10 ]
+a_Dp_p: 10
+a_Do_p: 10
 
 # # ==========  3: vel_Dadapt   ==========
 # damp_adapt_method: "vel" #
